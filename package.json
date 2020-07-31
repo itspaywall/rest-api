@@ -1,0 +1,32 @@
+{
+    "name": "hubble-server",
+    "version": "0.0.0",
+    "private": true,
+    "scripts": {
+        "start": "nodemon --exec \"yarn lint && node ./app/index.js\"",
+        "run": "node ./app/index.js",
+        "pretty": "yarn pretty-quick",
+        "lint": "yarn eslint app/**/*.js"
+    },
+    "dependencies": {
+        "express": "~4.16.1",
+        "morgan": "~1.9.1"
+    },
+    "devDependencies": {
+        "eslint": "^7.5.0",
+        "husky": "^4.2.5",
+        "nodemon": "^2.0.4",
+        "prettier": "^2.0.5",
+        "pretty-quick": "^2.0.1"
+    },
+    "husky": {
+        "hooks": {
+            "pre-commit": "pretty-quick --staged"
+        }
+    },
+    "nodemonConfig": {
+        "ignore": [
+            "node_modules/*"
+        ]
+    }
+}
