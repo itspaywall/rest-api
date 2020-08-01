@@ -1,15 +1,19 @@
-var express = require("express");
-var logger = require("morgan");
+const express = require("express");
+const logger = require("morgan");
+const cors = require("cors");
+const bodyParser = require("body-parser");
+const authentication = require("./authentication");
 
-var app = express();
-
+const app = express();
+app.use(cors());
+app.use(bodyParser.json());
 app.use(logger("dev"));
 app.use(express.json());
-app.get("/", function (request, response) {
-    response.json({
-        message: "Hello, world!",
-    });
-});
-app.listen(3000, function () {
-    console.log("Listening on port 3000.");
+app.use(authentication);
+
+require("dotenv").config();
+const port = process.env.PORT || 3001;
+
+app.listen(port, function () {
+    console.log("You can access the server at http://localhost:" + port);
 });
