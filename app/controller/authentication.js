@@ -3,9 +3,11 @@ const User = require("../model/User");
 const httpStatus = require("..//util/httpStatus");
 const jwt = require("jsonwebtoken");
 const expressJwt = require("express-jwt");
+const bcrypt = require("bcrypt");
 const configuration = require("../../configuration");
 
 const JWT_LIFE_TIME = "7d";
+const SALT_ROUNDS = 10;
 
 function createAccessToken(identifier) {
     return jwt.sign({ identifier }, configuration.secret, {
@@ -76,7 +78,7 @@ router.use((error, request, response, next) => {
     }
 });
 
-router.post("/sessions", function (request, response) {
+router.post("/sessions", (request, response) => {
     const { userName, password } = request.body;
 
     if (!userName || !password) {
@@ -92,16 +94,23 @@ router.post("/sessions", function (request, response) {
             });
         }
 
-        if (user.password !== request.body.password) {
-            return response.status(httpStatus.BAD_REQUEST).json({
-                message: "The specified user name or password is invalid.",
-            });
-        }
-
-        const identifier = user._id.toString();
-        response.status(httpStatus.CREATED).send({
-            accessToken: createAccessToken(identifier),
-        });
+        bcrypt.compare(
+            request.body.password,
+            user.password,
+            (error, result) => {
+                if (!result) {
+                    response.status(httpStatus.BAD_REQUEST).json({
+                        message:
+                            "The specified user name or password is invalid.",
+                    });
+                } else {
+                    const identifier = user._id.toString();
+                    response.status(httpStatus.CREATED).send({
+                        accessToken: createAccessToken(identifier),
+                    });
+                }
+            }
+        );
     });
 });
 
@@ -137,7 +146,7 @@ const specification = [
     },
 ];
 
-router.post("/users", function (request, response) {
+router.post("/users", (request, response) => {
     if (validate(response, specification, request.body)) {
         const {
             userName,
@@ -157,23 +166,25 @@ router.post("/users", function (request, response) {
                         "A user with the specified user name already exists.",
                 });
             } else {
-                const role = "REGULAR_USER";
-                const newUser = new User({
-                    userName,
-                    firstName,
-                    lastName,
-                    emailAddress,
-                    password,
-                    role,
-                });
-                newUser.save((error) => {
-                    if (error) {
-                        throw error;
-                    }
+                bcrypt.hash(password, SALT_ROUNDS, (error, hashedPassword) => {
+                    const role = "REGULAR_USER";
+                    const newUser = new User({
+                        userName,
+                        firstName,
+                        lastName,
+                        emailAddress,
+                        password: hashedPassword,
+                        role,
+                    });
+                    newUser.save((error) => {
+                        if (error) {
+                            throw error;
+                        }
 
-                    const identifier = newUser._id.toString();
-                    response.status(httpStatus.CREATED).send({
-                        accessToken: createAccessToken(identifier),
+                        const identifier = newUser._id.toString();
+                        response.status(httpStatus.CREATED).send({
+                            accessToken: createAccessToken(identifier),
+                        });
                     });
                 });
             }
