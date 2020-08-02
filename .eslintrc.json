@@ -1,5 +1,6 @@
 {
     "env": {
+        "node": true,
         "browser": true,
         "commonjs": true,
         "es2020": true
@@ -8,5 +9,8 @@
     "parserOptions": {
         "ecmaVersion": 11
     },
-    "rules": {}
+    "rules": {
+        "no-unused-vars": ["warn"],
+        "no-mixed-spaces-and-tabs": ["warn"]
+    }
 }

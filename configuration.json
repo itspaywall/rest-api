@@ -1,0 +1,5 @@
+{
+    "secret": "72e65332c041638f3cf95236f596a3d36252276f73f7c9cd78278359d3cab6e909d1d8701f0027dfb363ff292f2b8281f7fca5c4d1b031154111b0bd12dd2b13",
+    "audience": "nodejs-jwt-auth",
+    "issuer": "https://www.hubblesuite.com"
+}
