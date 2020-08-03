@@ -3,6 +3,7 @@ const User = require("../model/User");
 const httpStatus = require("..//util/httpStatus");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
+const joi = require("joi");
 const configuration = require("../../configuration");
 const jwtCheck = require("../middleware/jwtCheck");
 const unless = require("../middleware/unless");
@@ -43,84 +44,81 @@ function createAccessToken(identifier) {
     });
 }
 
-router.post("/sessions", (request, response) => {
-    const { userName, password } = request.body;
-
-    if (!userName || !password) {
-        return response.status(httpStatus.BAD_REQUEST).json({
-            message: "The specified user name or password is invalid.",
-        });
-    }
-
-    User.findOne({ userName }).exec((error, user) => {
-        if (error) {
-            return response.status(httpStatus.BAD_REQUEST).json({
-                message: "The specified user name or password is invalid.",
-            });
-        }
-
-        bcrypt.compare(
-            request.body.password,
-            user.password,
-            (error, result) => {
-                if (!result) {
-                    response.status(httpStatus.BAD_REQUEST).json({
-                        message:
-                            "The specified user name or password is invalid.",
-                    });
-                } else {
-                    const identifier = user._id.toString();
-                    response.status(httpStatus.CREATED).send({
-                        accessToken: createAccessToken(identifier),
-                    });
-                }
-            }
-        );
-    });
+const postSessionsSchema = joi.object({
+    userName: joi.string().alphanum().min(3).max(30).required(),
+    password: joi.string().min(8).max(128).required(),
 });
 
-function validate(response, specification, parameters) {
-    return specification.every((item) => {
-        let result = true;
-        if (!parameters[item.identifier]) {
-            response.status(httpStatus.BAD_REQUEST).json({
-                message: `Please specifiy a valid ${item.title}.`,
-            });
-            result = false;
-        }
-        return result;
-    });
-}
+router.post("/sessions", (request, response) => {
+    const parameters = {
+        userName: request.body.userName,
+        password: request.body.password,
+    };
 
-const specification = [
-    {
-        identifier: "userName",
-        title: "user name",
-    },
-    {
-        identifier: "firstName",
-        title: "first name",
-    },
-    {
-        identifier: "emailAddress",
-        title: "email address",
-    },
-    {
-        identifier: "password",
-        title: "password",
-    },
-];
+    const { error, credentials } = postSessionsSchema.validate(parameters);
+
+    if (error) {
+        response.status(httpStatus.BAD_REQUEST).json({
+            message: "The specified user name or password is invalid.",
+        });
+    } else {
+        User.findOne({ userName: credentials.userName }).exec((error, user) => {
+            if (error) {
+                response.status(httpStatus.BAD_REQUEST).json({
+                    message: "The specified user name or password is invalid.",
+                });
+            } else {
+                bcrypt.compare(
+                    credentials.password,
+                    user.password,
+                    (error, result) => {
+                        if (!result) {
+                            response.status(httpStatus.BAD_REQUEST).json({
+                                message:
+                                    "The specified user name or password is invalid.",
+                            });
+                        } else {
+                            const identifier = user._id.toString();
+                            response.status(httpStatus.CREATED).send({
+                                accessToken: createAccessToken(identifier),
+                            });
+                        }
+                    }
+                );
+            }
+        });
+    }
+});
+
+const postUsersSchema = joi.object({
+    userName: joi
+        .string()
+        .trim()
+        .alphanum()
+        .lowercase()
+        .min(3)
+        .max(30)
+        .required(),
+    firstName: joi.string().trim().required(),
+    lastName: joi.string().trim().required(),
+    emailAddress: joi.string().email().required(),
+    password: joi.string().min(8).max(128).required(),
+});
 
 router.post("/users", (request, response) => {
-    if (validate(response, specification, request.body)) {
-        const {
-            userName,
-            firstName,
-            lastName,
-            emailAddress,
-            password,
-        } = request.body;
-        User.findOne({ userName }).exec((error, user) => {
+    const parameters = {
+        userName: request.body.userName,
+        firstName: request.body.firstName,
+        lastName: request.body.lastName,
+        emailAddress: request.body.emailAddress,
+        password: request.body.password,
+    };
+    const { error, inputUser } = postUsersSchema.validate(parameters);
+
+    if (error) {
+        throw error;
+    } else {
+        User.findOne({ userName: inputUser.userName }).exec((error, user) => {
             if (error) {
                 throw error;
             }
@@ -131,27 +129,25 @@ router.post("/users", (request, response) => {
                         "A user with the specified user name already exists.",
                 });
             } else {
-                bcrypt.hash(password, SALT_ROUNDS, (error, hashedPassword) => {
-                    const role = "REGULAR_USER";
-                    const newUser = new User({
-                        userName,
-                        firstName,
-                        lastName,
-                        emailAddress,
-                        password: hashedPassword,
-                        role,
-                    });
-                    newUser.save((error) => {
-                        if (error) {
-                            throw error;
-                        }
+                bcrypt.hash(
+                    inputUser.password,
+                    SALT_ROUNDS,
+                    (error, hashedPassword) => {
+                        inputUser.password = hashedPassword;
+                        inputUser.role = "REGULAR_USER";
+                        const newUser = new User(inputUser);
+                        newUser.save((error) => {
+                            if (error) {
+                                throw error;
+                            }
 
-                        const identifier = newUser._id.toString();
-                        response.status(httpStatus.CREATED).send({
-                            accessToken: createAccessToken(identifier),
+                            const identifier = newUser._id.toString();
+                            response.status(httpStatus.CREATED).send({
+                                accessToken: createAccessToken(identifier),
+                            });
                         });
-                    });
-                });
+                    }
+                );
             }
         });
     }
