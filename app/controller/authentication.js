@@ -2,70 +2,26 @@ const express = require("express");
 const User = require("../model/User");
 const httpStatus = require("..//util/httpStatus");
 const jwt = require("jsonwebtoken");
-const expressJwt = require("express-jwt");
 const bcrypt = require("bcrypt");
 const configuration = require("../../configuration");
+const jwtCheck = require("../middleware/jwtCheck");
+const unless = require("../middleware/unless");
+const requireRole = require("../middleware/requireRole");
 
 const JWT_LIFE_TIME = "7d";
 const SALT_ROUNDS = 10;
-
-function createAccessToken(identifier) {
-    return jwt.sign({ identifier }, configuration.secret, {
-        issuer: configuration.issuer,
-        audience: configuration.audience,
-        expiresIn: JWT_LIFE_TIME,
-        algorithm: "HS256",
-    });
-}
-
-const jwtCheck = expressJwt({
-    secret: configuration.secret,
-    audience: configuration.audience,
-    issuer: configuration.issuer,
-    algorithms: ["HS256"],
-}).unless({
-    path: [
-        {
-            url: "/users",
-            methods: ["POST"],
-        },
-        {
-            url: "/sessions",
-            methods: ["POST"],
-        },
-    ],
-});
-
-function requireRole(role) {
-    return (request, response, next) => {
-        if (
-            request.url !== "/users" &&
-            request.url !== "/sessions" &&
-            request.method != "POST"
-        ) {
-            const identifier = request.user;
-            User.findById(identifier, (error, user) => {
-                if (error) {
-                    throw error;
-                }
-                if (user.role !== role) {
-                    response.status(httpStatus.FORBIDDEN).json({
-                        message: "The requested resource is forbidden.",
-                    });
-                } else {
-                    next();
-                }
-            });
-        } else {
-            next();
-        }
-    };
-}
-
 const router = express.Router();
 
-router.use("/", jwtCheck);
-router.use("/", requireRole("REGULAR_USER"));
+function openAccess() {
+    return (request) =>
+        request.url !== "/users" &&
+        request.url !== "/sessions" &&
+        request.method !== "POST";
+}
+
+router.use("/", unless(openAccess, jwtCheck));
+
+router.use("/", unless(openAccess, requireRole("REGULAR_USER")));
 
 router.use((error, request, response, next) => {
     if (error.name === "UnauthorizedError") {
@@ -77,6 +33,15 @@ router.use((error, request, response, next) => {
         next(error);
     }
 });
+
+function createAccessToken(identifier) {
+    return jwt.sign({ identifier }, configuration.secret, {
+        issuer: configuration.issuer,
+        audience: configuration.audience,
+        expiresIn: JWT_LIFE_TIME,
+        algorithm: "HS256",
+    });
+}
 
 router.post("/sessions", (request, response) => {
     const { userName, password } = request.body;
