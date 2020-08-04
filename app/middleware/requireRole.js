@@ -3,8 +3,7 @@ const httpStatus = require("..//util/httpStatus");
 
 function requireRole(role) {
     return (request, response, next) => {
-        const identifier = request.user;
-        User.findById(identifier, (error, user) => {
+        User.findById(request.user.identifier, (error, user) => {
             if (error) {
                 throw error;
             }
