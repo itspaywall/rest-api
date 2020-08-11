@@ -1,11 +1,12 @@
 const mongoose = require("mongoose");
 const joi = require("joi");
+const constants = require("../util/constants");
 const httpStatus = require("../util/httpStatus");
 const Account = require("../model/Account");
 
 const { Types } = mongoose;
 
-function toJSON(account) {
+function toExternal(account) {
     return {
         identifier: account.id,
         userName: account.userName,
@@ -81,19 +82,51 @@ function attachRoutes(router) {
                 const newAccount = new Account(value);
                 await newAccount.save();
 
-                response.status(httpStatus.CREATED).json(toJSON(newAccount));
+                response
+                    .status(httpStatus.CREATED)
+                    .json(toExternal(newAccount));
             }
         }
     });
 
-    /*
-	const getAccountsSchema = joi.object({
+    const filterSchema = joi.object({
+        page: joi.number().integer().default(1),
+        limit: joi
+            .number()
+            .integer()
+            .min(10)
+            .max(constants.PAGINATE_MAX_LIMIT)
+            .default(10),
+    });
 
-	});
-	router.get('/accounts', (request, response) => {
-		
-	});
-	
+    router.get("/accounts", async (request, response) => {
+        const body = request.body;
+        const parameters = {
+            page: body.page,
+            limit: body.limit,
+        };
+        const { error, value } = filterSchema.validate(parameters);
+        if (error) {
+            response.status(httpStatus.BAD_REQUEST).json({
+                message: error.message,
+            });
+        } else {
+            const ownerId = new Types.ObjectId(request.user.identifier);
+            const accounts = await Account.paginate(
+                { ownerId },
+                {
+                    limit: value.limit,
+                    page: value,
+                    lean: true,
+                    leanWithId: true,
+                    pagination: true,
+                }
+            );
+            response.status(httpStatus.OK).json(accounts.docs.map(toExternal));
+        }
+    });
+
+    /*
 	router.get('/accounts/:identifier', (request, response) => {
 	});
 
