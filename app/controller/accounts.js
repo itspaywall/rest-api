@@ -66,6 +66,9 @@ function attachRoutes(router) {
                 message: error.message,
             });
         } else {
+            /* If a deleted account already uses the specified user name, the new account cannot
+             * use it.
+             */
             const ownerId = new mongoose.ObjectId(request.user.identifier);
             const account = await Account.findOne({
                 userName: value.userName,
@@ -114,7 +117,7 @@ function attachRoutes(router) {
         } else {
             const ownerId = new Types.ObjectId(request.user.identifier);
             const accounts = await Account.paginate(
-                { ownerId },
+                { ownerId, deleted: false },
                 {
                     limit: value.limit,
                     page: value,
@@ -132,8 +135,7 @@ function attachRoutes(router) {
         const ownerId = new Types.ObjectId(request.user.identifier);
         const id = new Types.ObjectId(request.params.identifier);
         const account = await Account.findById(id)
-            .where("ownerId")
-            .equals(ownerId)
+            .and([{ ownerId: ownerId }, { deleted: false }])
             .exec();
         if (account) {
             response.status(httpStatus.OK).json(toExternal(account));
@@ -171,7 +173,7 @@ function attachRoutes(router) {
             const ownerId = new Types.ObjectId(request.user.identifier);
 
             const account = await Account.findOneAndUpdate(
-                { _id, ownerId },
+                { _id, ownerId, deleted: false },
                 value,
                 { new: true }
             ).exec();
@@ -186,11 +188,23 @@ function attachRoutes(router) {
         }
     });
 
-    /*
-    router.delete('/accounts/:identifier', (request, response) => {
-
+    router.delete("/accounts/:identifier", async (request, response) => {
+        const _id = new Types.ObjectId(request.params.identifier);
+        const ownerId = new Types.ObjectId(request.user.identifier);
+        const account = await Account.findOneAndUpdate(
+            { _id, ownerId, deleted: false },
+            { deleted: true },
+            { new: true }
+        ).exec();
+        if (account) {
+            response.status(httpStatus.NO_CONTENT).send();
+        } else {
+            response.status(httpStatus.NOT_FOUND).json({
+                message:
+                    "Cannot find an account with the specified identifier.",
+            });
+        }
     });
-	*/
 }
 
 module.exports = {
