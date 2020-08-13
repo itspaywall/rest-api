@@ -135,22 +135,58 @@ function attachRoutes(router) {
             .where("ownerId")
             .equals(ownerId)
             .exec();
-        console.log(account);
-        if (!account) {
+        if (account) {
+            response.status(httpStatus.OK).json(toExternal(account));
+        } else {
             response.status(httpStatus.NOT_FOUND).json({
                 message:
                     "Cannot find an account with the specified identifier.",
             });
+        }
+    });
+
+    router.put("/accounts/:identifier", async (request, response) => {
+        const body = request.body;
+        const parameters = {
+            userName: body.userName,
+            firstName: body.firstName,
+            lastName: body.lastName,
+            emailAddress: body.emailAddress,
+            phoneNumber: body.phoneNumber,
+            addressLine1: body.addressLine1,
+            addressLine2: body.addressLine2,
+            city: body.city,
+            state: body.state,
+            country: body.country,
+            zipCode: body.zipCode,
+        };
+        const { error, value } = accountSchema.validate(parameters);
+
+        if (error) {
+            response.status(httpStatus.BAD_REQUEST).json({
+                message: error.message,
+            });
         } else {
-            response.status(httpStatus.OK).json(toExternal(account));
+            const _id = new Types.ObjectId(request.params.identifier);
+            const ownerId = new Types.ObjectId(request.user.identifier);
+
+            const account = await Account.findOneAndUpdate(
+                { _id, ownerId },
+                value,
+                { new: true }
+            ).exec();
+            if (account) {
+                response.status(httpStatus.OK).json(toExternal(account));
+            } else {
+                response.status(httpStatus.NOT_FOUND).json({
+                    message:
+                        "Cannot find an account with the specified identifier.",
+                });
+            }
         }
     });
 
     /*
-	router.put('/accounts/:identifier', (request, response) => {
-
-	});
-
     router.delete('/accounts/:identifier', (request, response) => {
 
     });
