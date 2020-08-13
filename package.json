@@ -7,7 +7,7 @@
         "run": "node ./app/index.js",
         "pretty": "pretty-quick",
         "lint": "eslint app/**/*.js",
-        "test": "jest",
+        "test": "jest --runInBand --detectOpenHandles",
         "test:watch": "jest --watch"
     },
     "dependencies": {

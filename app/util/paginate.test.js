@@ -25,8 +25,6 @@
 let mongoose = require("mongoose");
 let paginate = require("./paginate");
 
-let MONGO_URI = "mongodb://localhost/mongoose_paginate_test";
-
 let AuthorSchema = new mongoose.Schema({
     name: String,
 });
@@ -101,11 +99,13 @@ describe("mongoose-paginate", function () {
         expect(promise.then).toBeInstanceOf(Function);
     });
 
-    it("callback test", function (done) {
-        Book.paginate({}, {}, function (err, result) {
-            expect(err).toBeNull();
-            expect(result).toBeInstanceOf(Object);
-            done();
+    it("callback test", () => {
+        return new Promise((resolve) => {
+            Book.paginate({}, {}, function (err, result) {
+                expect(err).toBeNull();
+                expect(result).toBeInstanceOf(Object);
+                resolve();
+            });
         });
     });
 
@@ -283,34 +283,32 @@ describe("mongoose-paginate", function () {
         });
     });
 
-    /*
-  it('with $where condition', function () {
-    var query = {
-      '$where': 'this.price < 100'
-    };
+    it.skip("with $where condition", function () {
+        var query = {
+            $where: "this.price < 100",
+        };
 
-    var options = {
-      sort: {
-        price: -1
-      },
-      page: 2
-    };
+        var options = {
+            sort: {
+                price: -1,
+            },
+            page: 2,
+        };
 
-    return Book.paginate(query, options).then((result) => {
-      expect(result.docs.length).toBe(6);
-      expect(result.docs[0].title).toEqual('Book #6');
-      expect(result.totalDocs).toEqual(16);
-      expect(result.limit).toEqual(10);
-      expect(result.page).toEqual(2);
-      expect(result.pagingCounter).toEqual(11);
-      expect(result.hasPrevPage).toEqual(true);
-      expect(result.hasNextPage).toEqual(false);
-      expect(result.prevPage).toEqual(1);
-      expect(result.nextPage).toEqual(null);
-      expect(result.totalPages).toEqual(2);
+        return Book.paginate(query, options).then((result) => {
+            expect(result.docs.length).toBe(6);
+            expect(result.docs[0].title).toEqual("Book #6");
+            expect(result.totalDocs).toEqual(16);
+            expect(result.limit).toEqual(10);
+            expect(result.page).toEqual(2);
+            expect(result.pagingCounter).toEqual(11);
+            expect(result.hasPrevPage).toEqual(true);
+            expect(result.hasNextPage).toEqual(false);
+            expect(result.prevPage).toEqual(1);
+            expect(result.nextPage).toEqual(null);
+            expect(result.totalPages).toEqual(2);
+        });
     });
-  });
-  */
 
     it("with empty custom labels", function () {
         var query = {

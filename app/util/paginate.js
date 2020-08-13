@@ -119,10 +119,10 @@ function paginate(query, options, callback) {
     const labelHasNextPage = customLabels.hasNextPage;
     const labelMeta = customLabels.meta;
 
-    if (options.hasOwnProperty("offset")) {
+    if (Object.prototype.hasOwnProperty.call(options, "offset")) {
         offset = parseInt(options.offset, 10);
         skip = offset;
-    } else if (options.hasOwnProperty("page")) {
+    } else if (Object.prototype.hasOwnProperty.call(options, "page")) {
         page = parseInt(options.page, 10);
         skip = (page - 1) * limit;
     } else {

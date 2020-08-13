@@ -59,6 +59,11 @@ const accountSchema = new Schema({
         default: Date.now,
         required: true,
     },
+    deleted: {
+        type: Boolean,
+        default: false,
+        required: true,
+    },
 });
 
 accountSchema.plugin(paginate);

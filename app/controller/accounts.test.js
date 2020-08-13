@@ -15,7 +15,7 @@ describe("GET /accounts", () => {
             useCreateIndex: true,
         });
 
-        app.listen(3001);
+        app.listen(5319);
 
         const user = {
             userName: "joel",

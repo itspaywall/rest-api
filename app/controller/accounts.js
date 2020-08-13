@@ -66,7 +66,7 @@ function attachRoutes(router) {
                 message: error.message,
             });
         } else {
-            const ownerId = new Types.ObjectId(request.user.identifier);
+            const ownerId = new mongoose.ObjectId(request.user.identifier);
             const account = await Account.findOne({
                 userName: value.userName,
                 ownerId,
@@ -79,6 +79,7 @@ function attachRoutes(router) {
                 });
             } else {
                 value.ownerId = ownerId;
+                value.deleted = false;
                 const newAccount = new Account(value);
                 await newAccount.save();
 
@@ -126,13 +127,33 @@ function attachRoutes(router) {
         }
     });
 
-    /*
-	router.get('/accounts/:identifier', (request, response) => {
-	});
+    /* An account created by one user should be hidden from another user. */
+    router.get("/accounts/:identifier", async (request, response) => {
+        const ownerId = new Types.ObjectId(request.user.identifier);
+        const id = new Types.ObjectId(request.params.identifier);
+        const account = await Account.findById(id)
+            .where("ownerId")
+            .equals(ownerId)
+            .exec();
+        console.log(account);
+        if (!account) {
+            response.status(httpStatus.NOT_FOUND).json({
+                message:
+                    "Cannot find an account with the specified identifier.",
+            });
+        } else {
+            response.status(httpStatus.OK).json(toExternal(account));
+        }
+    });
 
+    /*
 	router.put('/accounts/:identifier', (request, response) => {
 
 	});
+
+    router.delete('/accounts/:identifier', (request, response) => {
+
+    });
 	*/
 }
 
