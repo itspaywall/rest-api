@@ -12,12 +12,14 @@ const accountSchema = new Schema({
         minlength: 2,
         maxlength: 100,
         required: true,
+        trim: true,
         type: String,
     },
     firstName: {
         minlength: 2,
         maxlength: 100,
         required: true,
+        trim: true,
         type: String,
     },
     lastName: {
