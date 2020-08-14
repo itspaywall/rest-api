@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const joi = require("joi");
+const constants = require("../util/constants");
 const httpStatus = require("../util/httpStatus");
 const Plan = require("../model/Plan");
 
@@ -47,6 +48,17 @@ function attachRoutes(router) {
         termUnit: joi.string().valid("days", "months").default("term"),
         renews: joi.boolean().default(true),
     });
+
+    const filterSchema = joi.object({
+        page: joi.number().integer().default(1),
+        limit: joi
+            .number()
+            .integer()
+            .min(10)
+            .max(constants.PAGINATE_MAX_LIMIT)
+            .default(10),
+    });
+
     router.post("/plans", async (request, response) => {
         const body = request.body;
         const parameters = {
@@ -91,6 +103,33 @@ function attachRoutes(router) {
 
                 response.status(httpStatus.CREATED).json(toExternal(newPlan));
             }
+        }
+    });
+
+    router.get("/plans", async (request, response) => {
+        const body = request.body;
+        const parameters = {
+            page: body.page,
+            limit: body.limit,
+        };
+        const { error, value } = filterSchema.validate(parameters);
+        if (error) {
+            response.status(httpStatus.BAD_REQUEST).json({
+                message: error.message,
+            });
+        } else {
+            const ownerId = new Types.ObjectId(request.user.identifier);
+            const plans = await Plan.paginate(
+                { ownerId, deleted: false },
+                {
+                    limit: value.limit,
+                    page: value,
+                    lean: true,
+                    leanWithId: true,
+                    pagination: true,
+                }
+            );
+            response.status(httpStatus.OK).json(plans.docs.map(toExternal));
         }
     });
 }

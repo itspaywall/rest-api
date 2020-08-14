@@ -44,6 +44,17 @@ function attachRoutes(router) {
         country: joi.string(),
         zipCode: joi.string(),
     });
+
+    const filterSchema = joi.object({
+        page: joi.number().integer().default(1),
+        limit: joi
+            .number()
+            .integer()
+            .min(10)
+            .max(constants.PAGINATE_MAX_LIMIT)
+            .default(10),
+    });
+
     router.post("/accounts", async (request, response) => {
         const body = request.body;
         const parameters = {
@@ -91,16 +102,6 @@ function attachRoutes(router) {
                     .json(toExternal(newAccount));
             }
         }
-    });
-
-    const filterSchema = joi.object({
-        page: joi.number().integer().default(1),
-        limit: joi
-            .number()
-            .integer()
-            .min(10)
-            .max(constants.PAGINATE_MAX_LIMIT)
-            .default(10),
     });
 
     router.get("/accounts", async (request, response) => {
