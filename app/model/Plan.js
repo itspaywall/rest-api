@@ -86,6 +86,7 @@ const planSchema = new Schema({
     },
 });
 
+planSchema.plugin(paginate);
 const Plan = mongoose.model("Plan", planSchema);
 
 module.exports = Plan;
