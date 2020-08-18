@@ -132,6 +132,22 @@ function attachRoutes(router) {
             response.status(httpStatus.OK).json(plans.docs.map(toExternal));
         }
     });
+
+    /* A plan created by one user should be hidden from another user. */
+    router.get("/plans/:identifier", async (request, response) => {
+        const ownerId = new Types.ObjectId(request.user.identifier);
+        const id = new Types.ObjectId(request.params.identifier);
+        const plan = await Plan.findById(id)
+            .and([{ ownerId: ownerId }, { deleted: false }])
+            .exec();
+        if (plan) {
+            response.status(httpStatus.OK).json(toExternal(plan));
+        } else {
+            response.status(httpStatus.NOT_FOUND).json({
+                message: "Cannot find a plan with the specified identifier.",
+            });
+        }
+    });
 }
 
 module.exports = {
