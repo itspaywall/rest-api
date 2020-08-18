@@ -148,6 +148,48 @@ function attachRoutes(router) {
             });
         }
     });
+
+    router.put("/plans/:identifier", async (request, response) => {
+        const body = request.body;
+        const parameters = {
+            name: body.name,
+            code: body.code,
+            description: body.description,
+            billingPeriod: body.billingPeriod,
+            billingPeriodUnit: body.billingPeriodUnit,
+            pricePerBillingPeriod: body.pricePerBillingPeriod,
+            setupFee: body.setupFee,
+            trialPeriod: body.trialPeriod,
+            trialPeriodUnit: body.trialPeriodUnit,
+            term: body.term,
+            termUnit: body.termUnit,
+            renews: body.renews,
+        };
+        const { error, value } = planSchema.validate(parameters);
+
+        if (error) {
+            response.status(httpStatus.BAD_REQUEST).json({
+                message: error.message,
+            });
+        } else {
+            const _id = new Types.ObjectId(request.params.identifier);
+            const ownerId = new Types.ObjectId(request.user.identifier);
+
+            const plan = await Plan.findOneAndUpdate(
+                { _id, ownerId, deleted: false },
+                value,
+                { new: true }
+            ).exec();
+            if (plan) {
+                response.status(httpStatus.OK).json(toExternal(plan));
+            } else {
+                response.status(httpStatus.NOT_FOUND).json({
+                    message:
+                        "Cannot find a plan with the specified identifier.",
+                });
+            }
+        }
+    });
 }
 
 module.exports = {
