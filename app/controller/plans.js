@@ -190,6 +190,23 @@ function attachRoutes(router) {
             }
         }
     });
+
+    router.delete("/plans/:identifier", async (request, response) => {
+        const _id = new Types.ObjectId(request.params.identifier);
+        const ownerId = new Types.ObjectId(request.user.identifier);
+        const plan = await Plan.findOneAndUpdate(
+            { _id, ownerId, deleted: false },
+            { deleted: true },
+            { new: true }
+        ).exec();
+        if (plan) {
+            response.status(httpStatus.NO_CONTENT).send();
+        } else {
+            response.status(httpStatus.NOT_FOUND).json({
+                message: "Cannot find a plan with the specified identifier.",
+            });
+        }
+    });
 }
 
 module.exports = {
