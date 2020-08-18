@@ -4,6 +4,7 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 const authentication = require("./controller/authentication");
 const accounts = require("./controller/accounts");
+const plans = require("./controller/plans");
 const jwtCheck = require("./middleware/jwtCheck");
 const unless = require("./middleware/unless");
 const requireRole = require("./middleware/requireRole");
@@ -29,5 +30,6 @@ router.use("/", unless(openAccess, requireRole("REGULAR_USER")));
 app.use(router);
 authentication.attachRoutes(router);
 accounts.attachRoutes(router);
+plans.attachRoutes(router);
 
 module.exports = app;
