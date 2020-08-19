@@ -89,7 +89,7 @@ function attachRoutes(router) {
             const plan = await Plan.findOne({
                 code: value.code,
                 ownerId,
-            });
+            }).exec();
 
             if (plan) {
                 response.status(httpStatus.BAD_REQUEST).json({
@@ -138,7 +138,7 @@ function attachRoutes(router) {
         const ownerId = new Types.ObjectId(request.user.identifier);
         const id = new Types.ObjectId(request.params.identifier);
         const plan = await Plan.findById(id)
-            .and([{ ownerId: ownerId }, { deleted: false }])
+            .and([{ ownerId }, { deleted: false }])
             .exec();
         if (plan) {
             response.status(httpStatus.OK).json(toExternal(plan));

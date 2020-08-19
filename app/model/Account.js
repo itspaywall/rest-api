@@ -56,7 +56,12 @@ const accountSchema = new Schema({
     zipCode: {
         type: String,
     },
-    createdOn: {
+    createdAt: {
+        type: Date,
+        default: Date.now,
+        required: true,
+    },
+    updatedAt: {
         type: Date,
         default: Date.now,
         required: true,

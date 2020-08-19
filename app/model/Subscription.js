@@ -8,71 +8,80 @@ const validateInteger = {
     message: (props) => `${props.value} should be an integer.`,
 };
 
-const planSchema = new Schema({
+const subscriptionSchema = new Schema({
     ownerId: {
         type: Schema.Types.ObjectId,
         required: true,
     },
-    name: {
-        type: String,
-        minlength: 2,
-        maxlength: 100,
+    planId: {
+        type: Schema.Types.ObjectId,
         required: true,
-        trim: true,
     },
-    code: {
-        type: String,
-        minlength: 2,
-        maxlength: 20,
+    accountId: {
+        type: Schema.Types.ObjectId,
         required: true,
-        trim: true,
     },
-    description: {
-        type: String,
-        maxlength: 200,
-        trim: true,
-    },
-    billingPeriod: {
+    quantity: {
         type: Number,
-        required: true,
         validate: validateInteger,
-    },
-    billingPeriodUnit: {
-        type: String,
         required: true,
-        enum: ["days", "months"],
     },
-    pricePerBillingPeriod: {
-        type: Number,
+    trialStart: {
+        type: Date,
+        default: null,
+        required: true,
+    },
+    trialEnd: {
+        type: Date,
+        default: null,
         required: true,
     },
     setupFee: {
         type: Number,
         default: 0,
-    },
-    trialPeriod: {
-        type: Number,
-        validate: validateInteger,
-        default: 0,
-    },
-    trialPeriodUnit: {
-        type: String,
-        enum: ["days", "months"],
-        default: "days",
+        required: true,
     },
     term: {
         type: Number,
         validate: validateInteger,
         default: 0,
+        required: true,
     },
     termUnit: {
         type: String,
         enum: ["days", "months"],
         default: "days",
+        required: true,
     },
     renews: {
         type: Boolean,
         default: true,
+        required: true,
+    },
+    activatedAt: {
+        type: Date,
+        default: Date.now,
+        required: true,
+    },
+    cancelledAt: {
+        type: Date,
+        default: null,
+        required: true,
+    },
+    pausedAt: {
+        type: Date,
+        default: null,
+        required: true,
+    },
+    currentPeriodStart: {
+        type: Date,
+        default: Date.now,
+        required: true,
+    },
+    currentPeriodEnd: {
+        type: Date,
+        default: Date.now,
+        required: true,
     },
     createdAt: {
         type: Date,
@@ -91,7 +100,7 @@ const planSchema = new Schema({
     },
 });
 
-planSchema.plugin(paginate);
-const Plan = mongoose.model("Plan", planSchema);
+subscriptionSchema.plugin(paginate);
+const Subscription = mongoose.model("Subscription", subscriptionSchema);
 
-module.exports = Plan;
+module.exports = Subscription;
