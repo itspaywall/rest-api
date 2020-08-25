@@ -107,6 +107,7 @@ describe("Plan model", () => {
             termUnit: "months",
             renews: true,
             createdAt: new Date(),
+            upadatedAt: new Date(),
             deleted: false,
         };
         const plan = new Plan(invalidPlan);
