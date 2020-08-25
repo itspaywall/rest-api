@@ -117,6 +117,23 @@ function attachRoutes(router) {
 
         response.status(httpStatus.CREATED).json(toExternal(newSubscription));
     });
+
+    /* A subscription created by one user should be hidden from another user. */
+    router.get("/subscriptions/:id", async (request, response) => {
+        const ownerId = new Types.ObjectId(request.user.identifier);
+        const id = new Types.ObjectId(request.params.id);
+        const subscription = await Subscription.findById(id)
+            .and([{ ownerId }, { deleted: false }])
+            .exec();
+        if (subscription) {
+            response.status(httpStatus.OK).json(toExternal(subscription));
+        } else {
+            response.status(httpStatus.NOT_FOUND).json({
+                message:
+                    "Cannot find a subscription with the specified identifier.",
+            });
+        }
+    });
 }
 
 module.exports = {
