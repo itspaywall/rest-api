@@ -5,9 +5,11 @@ const bodyParser = require("body-parser");
 const authentication = require("./controller/authentication");
 const accounts = require("./controller/accounts");
 const plans = require("./controller/plans");
+const subscriptions = require("./controller/subscriptions");
 const jwtCheck = require("./middleware/jwtCheck");
 const unless = require("./middleware/unless");
 const requireRole = require("./middleware/requireRole");
+const httpStatus = require("./util/httpStatus");
 
 require("dotenv").config();
 
@@ -31,5 +33,17 @@ app.use(router);
 authentication.attachRoutes(router);
 accounts.attachRoutes(router);
 plans.attachRoutes(router);
+subscriptions.attachRoutes(router);
+
+app.use((error, request, response, next) => {
+    response.status(httpStatus.INTERNAL_SERVER_ERROR);
+    response.send(
+        JSON.stringify({
+            message:
+                "An internal error occurred. Please try again in a few minutes.",
+        })
+    );
+    console.log(error);
+});
 
 module.exports = app;

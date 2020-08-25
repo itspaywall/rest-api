@@ -1,1 +1,1 @@
-{ "mongoUri": "mongodb://127.0.0.1:34771/jest?", "mongoDBName": "jest" }
+{ "mongoUri": "mongodb://127.0.0.1:33683/jest?", "mongoDBName": "jest" }

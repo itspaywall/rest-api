@@ -84,7 +84,7 @@ function attachRoutes(router) {
             const account = await Account.findOne({
                 userName: value.userName,
                 ownerId,
-            });
+            }).exec();
 
             if (account) {
                 response.status(httpStatus.BAD_REQUEST).json({

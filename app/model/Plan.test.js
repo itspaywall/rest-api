@@ -25,7 +25,7 @@ describe("Plan model", () => {
             term: 24,
             termUnit: "months",
             renews: true,
-            createdOn: new Date(),
+            createdAt: new Date(),
             deleted: false,
         };
         const plan = new Plan(validPlan);
@@ -46,7 +46,7 @@ describe("Plan model", () => {
         expect(savedPlan.term).toBe(validPlan.term);
         expect(savedPlan.termUnit).toBe(validPlan.termUnit);
         expect(savedPlan.renews).toBe(validPlan.renews);
-        expect(savedPlan.createdOn).toEqual(validPlan.createdOn);
+        expect(savedPlan.createdAt).toEqual(validPlan.createdAt);
         expect(savedPlan.deleted).toBe(validPlan.deleted);
     });
 
@@ -65,7 +65,7 @@ describe("Plan model", () => {
             term: 24,
             termUnit: "months",
             renews: true,
-            createdOn: new Date(),
+            createdAt: new Date(),
             deleted: false,
             favoriteFood: "Pizza",
         };
@@ -87,7 +87,7 @@ describe("Plan model", () => {
         expect(savedPlan.term).toBe(invalidPlan.term);
         expect(savedPlan.termUnit).toBe(invalidPlan.termUnit);
         expect(savedPlan.renews).toBe(invalidPlan.renews);
-        expect(savedPlan.createdOn).toEqual(invalidPlan.createdOn);
+        expect(savedPlan.createdAt).toEqual(invalidPlan.createdAt);
         expect(savedPlan.deleted).toBe(invalidPlan.deleted);
         expect(savedPlan.favoriteFood).toBeUndefined();
     });
@@ -106,7 +106,7 @@ describe("Plan model", () => {
             term: 24,
             termUnit: "months",
             renews: true,
-            createdOn: new Date(),
+            createdAt: new Date(),
             deleted: false,
         };
         const plan = new Plan(invalidPlan);
