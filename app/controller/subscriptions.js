@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const joi = require("joi");
+const constants = require("../util/constants");
 const httpStatus = require("../util/httpStatus");
 const Subscription = require("../model/Subscription");
 const Account = require("../model/Account");
@@ -31,20 +32,30 @@ function toExternal(subscription) {
     };
 }
 
+const newSubscriptionSchema = joi.object({
+    planId: joi.string().length(24).required(),
+    accountId: joi.string().length(24).required(),
+    quantity: joi.number().integer().required(),
+    trialStart: joi.date().required(),
+    trialEnd: joi.date().required(),
+    setupFee: joi.number().required(),
+    term: joi.number().integer().required(),
+    termUnit: joi.string().valid("days", "months").required(),
+    renews: joi.boolean().default(true),
+});
+
+const filterSchema = joi.object({
+    page: joi.number().integer().default(1),
+    limit: joi
+        .number()
+        .integer()
+        .min(10)
+        .max(constants.PAGINATE_MAX_LIMIT)
+        .default(10),
+});
+
 // NOTE: Input is not sanitized to prevent XSS attacks.
 function attachRoutes(router) {
-    const newSubscriptionSchema = joi.object({
-        planId: joi.string().length(24).required(),
-        accountId: joi.string().length(24).required(),
-        quantity: joi.number().integer().required(),
-        trialStart: joi.date().required(),
-        trialEnd: joi.date().required(),
-        setupFee: joi.number().required(),
-        term: joi.number().integer().required(),
-        termUnit: joi.string().valid("days", "months").required(),
-        renews: joi.boolean().default(true),
-    });
-
     router.post("/subscriptions", async (request, response) => {
         const body = request.body;
         const parameters = {
@@ -116,6 +127,35 @@ function attachRoutes(router) {
         await account.save();
 
         response.status(httpStatus.CREATED).json(toExternal(newSubscription));
+    });
+
+    router.get("/subscriptions", async (request, response) => {
+        const body = request.body;
+        const parameters = {
+            page: body.page,
+            limit: body.limit,
+        };
+        const { error, value } = filterSchema.validate(parameters);
+        if (error) {
+            response.status(httpStatus.BAD_REQUEST).json({
+                message: error.message,
+            });
+        } else {
+            const ownerId = new Types.ObjectId(request.user.identifier);
+            const subscriptions = await Account.paginate(
+                { ownerId, deleted: false },
+                {
+                    limit: value.limit,
+                    page: value,
+                    lean: true,
+                    leanWithId: true,
+                    pagination: true,
+                }
+            );
+            response
+                .status(httpStatus.OK)
+                .json(subscriptions.docs.map(toExternal));
+        }
     });
 
     /* A subscription created by one user should be hidden from another user. */
