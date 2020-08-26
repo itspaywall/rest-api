@@ -3,11 +3,8 @@ const paginate = require("../util/paginate");
 
 const { Schema } = mongoose;
 
-const invoiceItemSchema = new Schema({
-    type: {
-        required: true,
-    },
-    referenceId: {
+const invoiceSubscriptionSchema = new Schema({
+    subscriptionId: {
         required: true,
         type: Schema.Types.ObjectId,
     },
@@ -44,10 +41,6 @@ const invoiceSchema = new Schema({
         type: Schema.Types.ObjectId,
     },
     accountId: {
-        required: true,
-        type: Schema.Types.ObjectId,
-    },
-    subscriptionId: {
         required: true,
         type: Schema.Types.ObjectId,
     },
@@ -103,9 +96,9 @@ const invoiceSchema = new Schema({
         type: String,
         maxlength: 300,
     },
-    items: {
+    subscriptions: {
         required: true,
-        type: [invoiceItemSchema],
+        type: [invoiceSubscriptionSchema],
     },
     createdAt: {
         required: true,
@@ -113,6 +106,10 @@ const invoiceSchema = new Schema({
         default: Date.now,
     },
     dueAt: {
+        required: true,
+        type: Date,
+    },
+    closedAt: {
         required: true,
         type: Date,
     },
