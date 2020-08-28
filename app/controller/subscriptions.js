@@ -2,10 +2,10 @@ const mongoose = require("mongoose");
 const joi = require("joi");
 const constants = require("../util/constants");
 const httpStatus = require("../util/httpStatus");
-const Subscription = require("../model/Subscription");
-const Account = require("../model/Account");
-const Plan = require("../model/Plan");
-const User = require("../model/User");
+const Subscription = require("../model/subscription");
+const Account = require("../model/account");
+const Plan = require("../model/plan");
+const User = require("../model/user");
 
 const { Types } = mongoose;
 
