@@ -6,6 +6,7 @@ const authentication = require("./controller/authentication");
 const accounts = require("./controller/accounts");
 const plans = require("./controller/plans");
 const subscriptions = require("./controller/subscriptions");
+const transactions = require("./controller/transactions");
 const jwtCheck = require("./middleware/jwtCheck");
 const unless = require("./middleware/unless");
 const requireRole = require("./middleware/requireRole");
@@ -34,6 +35,7 @@ authentication.attachRoutes(router);
 accounts.attachRoutes(router);
 plans.attachRoutes(router);
 subscriptions.attachRoutes(router);
+transactions.attachRoutes(router);
 
 app.use((error, request, response, next) => {
     response.status(httpStatus.INTERNAL_SERVER_ERROR);
