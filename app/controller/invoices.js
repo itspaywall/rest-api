@@ -75,6 +75,21 @@ function attachRoutes(router) {
             response.status(httpStatus.OK).json(invoices.docs.map(toExternal));
         }
     });
+
+    /* An invoice owned by one user should be hidden from another user. */
+    router.get("/invoices/:id", async (request, response) => {
+        const ownerId = new Types.ObjectId(request.user.identifier);
+        const id = new Types.ObjectId(request.params.id);
+        const invoice = await Invoice.findById(id).and([{ ownerId }]).exec();
+        if (invoice) {
+            response.status(httpStatus.OK).json(toExternal(invoice));
+        } else {
+            response.status(httpStatus.NOT_FOUND).json({
+                message:
+                    "Cannot find an invoice with the specified identifier.",
+            });
+        }
+    });
 }
 
 module.exports = {
