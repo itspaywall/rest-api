@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 const joi = require("joi");
 const constants = require("../util/constants");
 const httpStatus = require("../util/httpStatus");
-const Account = require("../model/Account");
+const Account = require("../model/account");
 
 const { Types } = mongoose;
 

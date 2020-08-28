@@ -1,5 +1,5 @@
-const User = require("../model/User");
-const httpStatus = require("..//util/httpStatus");
+const User = require("../model/user");
+const httpStatus = require("../util/httpStatus");
 
 function requireRole(role) {
     return (request, response, next) => {

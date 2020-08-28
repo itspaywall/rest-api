@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const Plan = require("./Plan");
+const Plan = require("./plan");
 
 describe("Plan model", () => {
     beforeAll(() =>
