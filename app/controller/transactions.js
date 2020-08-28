@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const joi = require("joi");
+const constants = require("../util/constants");
 const httpStatus = require("../util/httpStatus");
 const Transaction = require("../model/transaction");
 
@@ -31,6 +32,16 @@ const transactionSchema = joi.object({
         .required(),
 });
 
+const filterSchema = joi.object({
+    page: joi.number().integer().default(1),
+    limit: joi
+        .number()
+        .integer()
+        .min(10)
+        .max(constants.PAGINATE_MAX_LIMIT)
+        .default(10),
+});
+
 // NOTE: Input is not sanitized to prevent XSS attacks.
 // TODO: Should we check if there is a transaction already attached to the specified reference id?
 // And ensure that the reference id is owned by the user.
@@ -57,6 +68,35 @@ function attachRoutes(router) {
         await newTransaction.save();
 
         response.status(httpStatus.CREATED).json(toExternal(newTransaction));
+    });
+
+    router.get("/transactions", async (request, response) => {
+        const body = request.body;
+        const parameters = {
+            page: body.page,
+            limit: body.limit,
+        };
+        const { error, value } = filterSchema.validate(parameters);
+        if (error) {
+            response.status(httpStatus.BAD_REQUEST).json({
+                message: error.message,
+            });
+        } else {
+            const ownerId = new Types.ObjectId(request.user.identifier);
+            const transactions = await Transaction.paginate(
+                { ownerId, deleted: false },
+                {
+                    limit: value.limit,
+                    page: value,
+                    lean: true,
+                    leanWithId: true,
+                    pagination: true,
+                }
+            );
+            response
+                .status(httpStatus.OK)
+                .json(transactions.docs.map(toExternal));
+        }
     });
 }
 
