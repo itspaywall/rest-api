@@ -98,6 +98,23 @@ function attachRoutes(router) {
                 .json(transactions.docs.map(toExternal));
         }
     });
+
+    /* A transaction created by one user should be hidden from another user. */
+    router.get("/transactions/:id", async (request, response) => {
+        const ownerId = new Types.ObjectId(request.user.identifier);
+        const id = new Types.ObjectId(request.params.id);
+        const transaction = await Transaction.findById(id)
+            .and([{ ownerId }])
+            .exec();
+        if (transaction) {
+            response.status(httpStatus.OK).json(toExternal(transaction));
+        } else {
+            response.status(httpStatus.NOT_FOUND).json({
+                message:
+                    "Cannot find a transaction with the specified identifier.",
+            });
+        }
+    });
 }
 
 module.exports = {
