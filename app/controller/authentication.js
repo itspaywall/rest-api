@@ -2,11 +2,16 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const joi = require("joi");
 const User = require("../model/user");
-const httpStatus = require("..//util/httpStatus");
+const httpStatus = require("../util/httpStatus");
 const configuration = require("../../configuration");
 
 const JWT_LIFE_TIME = "7d";
 const SALT_ROUNDS = 10;
+
+const credentialsSchema = joi.object({
+    userName: joi.string().alphanum().min(3).max(30).required(),
+    password: joi.string().min(8).max(128).required(),
+});
 
 function attachRoutes(router) {
     router.use((error, request, response, next) => {
@@ -27,51 +32,45 @@ function attachRoutes(router) {
         });
     }
 
-    const postSessionsSchema = joi.object({
-        userName: joi.string().alphanum().min(3).max(30).required(),
-        password: joi.string().min(8).max(128).required(),
-    });
-
-    router.post("/sessions", (request, response) => {
+    router.post("/sessions", async (request, response) => {
         const parameters = {
-            userName: request.body.userName,
+            userName: request.body.identifier,
             password: request.body.password,
         };
 
-        const { error, value } = postSessionsSchema.validate(parameters);
+        const { error, value } = credentialsSchema.validate(parameters);
 
         if (error) {
-            response.status(httpStatus.BAD_REQUEST).json({
+            return response.status(httpStatus.BAD_REQUEST).json({
                 message: "The specified user name or password is invalid.",
             });
-        } else {
-            User.findOne({ userName: value.userName }).exec((error, user) => {
-                if (error) {
-                    response.status(httpStatus.BAD_REQUEST).json({
-                        message:
-                            "The specified user name or password is invalid.",
-                    });
-                } else {
-                    bcrypt.compare(
-                        value.password,
-                        user.password,
-                        (error, result) => {
-                            if (!result) {
-                                response.status(httpStatus.BAD_REQUEST).json({
-                                    message:
-                                        "The specified user name or password is invalid.",
-                                });
-                            } else {
-                                const identifier = user._id.toString();
-                                response.status(httpStatus.CREATED).send({
-                                    accessToken: createAccessToken(identifier),
-                                });
-                            }
-                        }
-                    );
-                }
+        }
+
+        const user = await User.findOne({ userName: value.userName }).exec();
+
+        if (!user) {
+            return response.status(httpStatus.BAD_REQUEST).json({
+                message: "The specified user name or password is invalid.",
             });
         }
+
+        bcrypt.compare(value.password, user.password, (error, result) => {
+            if (!result) {
+                return response.status(httpStatus.BAD_REQUEST).json({
+                    message: "The specified user name or password is invalid.",
+                });
+            }
+
+            const identifier = user._id.toString();
+            response.status(httpStatus.CREATED).send({
+                accessToken: createAccessToken(identifier),
+                id: user.id,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                userName: user.userName,
+                emailAddress: user.emailAddress,
+            });
+        });
     });
 
     const postUsersSchema = joi.object({
