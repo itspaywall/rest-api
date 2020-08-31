@@ -1,25 +1,17 @@
 const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema({
-    userName: {
-        minlength: 2,
-        maxlength: 100,
-        required: true,
-        unique: true,
-        trim: true,
-        type: String,
-    },
     firstName: {
-        minlength: 2,
-        maxlength: 100,
+        minlength: 3,
+        maxlength: 40,
         required: true,
         unique: false,
         trim: true,
         type: String,
     },
     lastName: {
-        minlength: 2,
-        maxlength: 100,
+        minlength: 3,
+        maxlength: 40,
         required: true,
         unique: false,
         trim: true,
@@ -28,7 +20,6 @@ const userSchema = new mongoose.Schema({
     emailAddress: {
         lowercase: true,
         maxlength: 255,
-        minlength: 5,
         required: true,
         unique: true,
         trim: true,
@@ -41,6 +32,11 @@ const userSchema = new mongoose.Schema({
     role: {
         required: true,
         type: String,
+    },
+    createdAt: {
+        type: Date,
+        default: Date.now,
+        required: true,
     },
 });
 
