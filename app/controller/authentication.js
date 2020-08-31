@@ -2,11 +2,35 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const joi = require("joi");
 const User = require("../model/user");
-const httpStatus = require("..//util/httpStatus");
+const httpStatus = require("../util/httpStatus");
 const configuration = require("../../configuration");
 
 const JWT_LIFE_TIME = "7d";
 const SALT_ROUNDS = 10;
+
+const credentialsSchema = joi.object({
+    emailAddress: joi.string().email().required(),
+    password: joi.string().min(8).max(128).required(),
+});
+
+function createAccessToken(identifier) {
+    return jwt.sign({ identifier }, configuration.secret, {
+        issuer: configuration.issuer,
+        audience: configuration.audience,
+        expiresIn: JWT_LIFE_TIME,
+        algorithm: "HS256",
+    });
+}
+
+function toExternal(user) {
+    return {
+        accessToken: createAccessToken(user.id),
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        emailAddress: user.emailAddress,
+    };
+}
 
 function attachRoutes(router) {
     router.use((error, request, response, next) => {
@@ -18,122 +42,94 @@ function attachRoutes(router) {
             next(error);
         }
     });
-    function createAccessToken(identifier) {
-        return jwt.sign({ identifier }, configuration.secret, {
-            issuer: configuration.issuer,
-            audience: configuration.audience,
-            expiresIn: JWT_LIFE_TIME,
-            algorithm: "HS256",
-        });
-    }
 
-    const postSessionsSchema = joi.object({
-        userName: joi.string().alphanum().min(3).max(30).required(),
-        password: joi.string().min(8).max(128).required(),
-    });
-
-    router.post("/sessions", (request, response) => {
+    router.post("/sessions", async (request, response) => {
         const parameters = {
-            userName: request.body.userName,
+            emailAddress: request.body.emailAddress,
             password: request.body.password,
         };
 
-        const { error, value } = postSessionsSchema.validate(parameters);
+        const { error, value } = credentialsSchema.validate(parameters);
 
         if (error) {
-            response.status(httpStatus.BAD_REQUEST).json({
-                message: "The specified user name or password is invalid.",
-            });
-        } else {
-            User.findOne({ userName: value.userName }).exec((error, user) => {
-                if (error) {
-                    response.status(httpStatus.BAD_REQUEST).json({
-                        message:
-                            "The specified user name or password is invalid.",
-                    });
-                } else {
-                    bcrypt.compare(
-                        value.password,
-                        user.password,
-                        (error, result) => {
-                            if (!result) {
-                                response.status(httpStatus.BAD_REQUEST).json({
-                                    message:
-                                        "The specified user name or password is invalid.",
-                                });
-                            } else {
-                                const identifier = user._id.toString();
-                                response.status(httpStatus.CREATED).send({
-                                    accessToken: createAccessToken(identifier),
-                                });
-                            }
-                        }
-                    );
-                }
+            console.log(error);
+            return response.status(httpStatus.BAD_REQUEST).json({
+                message: "The specified email address or password is invalid.",
             });
         }
+
+        const user = await User.findOne({
+            emailAddress: value.emailAddress,
+        }).exec();
+
+        if (!user) {
+            console.log("Invalid email address");
+            return response.status(httpStatus.BAD_REQUEST).json({
+                message: "The specified email address or password is invalid.",
+            });
+        }
+
+        bcrypt.compare(value.password, user.password, (error, result) => {
+            if (error) {
+                console.log("Invalid password");
+                return response.status(httpStatus.BAD_REQUEST).json({
+                    message:
+                        "The specified email address or password is invalid.",
+                });
+            }
+
+            const identifier = user._id.toString();
+            response.status(httpStatus.CREATED).send(toExternal(user));
+        });
     });
 
     const postUsersSchema = joi.object({
-        userName: joi
-            .string()
-            .trim()
-            .alphanum()
-            .lowercase()
-            .min(3)
-            .max(30)
-            .required(),
-        firstName: joi.string().trim().required(),
-        lastName: joi.string().trim().required(),
+        firstName: joi.string().trim().alphanum().min(3).max(40).required(),
+        lastName: joi.string().trim().alphanum().min(3).max(40).required(),
         emailAddress: joi.string().email().required(),
         password: joi.string().min(8).max(128).required(),
     });
 
-    router.post("/users", (request, response) => {
+    router.post("/users", async (request, response) => {
         const parameters = {
-            userName: request.body.userName,
             firstName: request.body.firstName,
             lastName: request.body.lastName,
             emailAddress: request.body.emailAddress,
             password: request.body.password,
         };
-        const { error, value } = postUsersSchema.validate(parameters);
 
+        const { error, value } = postUsersSchema.validate(parameters);
         if (error) {
-            throw error;
+            return response.status(httpStatus.BAD_REQUEST).json({
+                message: error.message,
+            });
         }
 
-        User.findOne({ userName: value.userName }).exec((error, user) => {
+        const user = await User.findOne({
+            emailAddress: value.emailAddress,
+        }).exec();
+        if (user) {
+            return response.status(httpStatus.BAD_REQUEST).json({
+                message:
+                    "A user with the specified email address already exists.",
+            });
+        }
+
+        bcrypt.hash(value.password, SALT_ROUNDS, (error, hashedPassword) => {
             if (error) {
                 throw error;
             }
 
-            if (user) {
-                response.status(httpStatus.BAD_REQUEST).json({
-                    message:
-                        "A user with the specified user name already exists.",
-                });
-            } else {
-                bcrypt.hash(
-                    value.password,
-                    SALT_ROUNDS,
-                    (error, hashedPassword) => {
-                        value.password = hashedPassword;
-                        value.role = "REGULAR_USER";
-                        const newUser = new User(value);
-                        newUser.save((error) => {
-                            if (error) {
-                                throw error;
-                            }
+            value.password = hashedPassword;
+            value.role = "REGULAR_USER";
+            const newUser = new User(value);
+            newUser.save((error) => {
+                if (error) {
+                    throw error;
+                }
 
-                            const identifier = newUser._id.toString();
-                            response.status(httpStatus.CREATED).json({
-                                accessToken: createAccessToken(identifier),
-                            });
-                        });
-                    }
-                );
-            }
+                response.status(httpStatus.CREATED).json(toExternal(newUser));
+            });
         });
     });
 }

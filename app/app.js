@@ -30,7 +30,7 @@ function openAccess(request) {
 const router = express.Router();
 router.use("/", unless(openAccess, jwtCheck));
 router.use("/", unless(openAccess, requireRole("REGULAR_USER")));
-app.use(router);
+app.use("/api/v1", router);
 authentication.attachRoutes(router);
 accounts.attachRoutes(router);
 plans.attachRoutes(router);
