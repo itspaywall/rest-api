@@ -5,6 +5,7 @@ const bodyParser = require("body-parser");
 const authentication = require("./controller/authentication");
 const accounts = require("./controller/accounts");
 const plans = require("./controller/plans");
+const invoices = require("./controller/invoices");
 const subscriptions = require("./controller/subscriptions");
 const transactions = require("./controller/transactions");
 const jwtCheck = require("./middleware/jwtCheck");
@@ -34,6 +35,7 @@ app.use("/api/v1", router);
 authentication.attachRoutes(router);
 accounts.attachRoutes(router);
 plans.attachRoutes(router);
+invoices.attachRoutes(router);
 subscriptions.attachRoutes(router);
 transactions.attachRoutes(router);
 

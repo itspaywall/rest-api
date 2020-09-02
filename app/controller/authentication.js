@@ -69,7 +69,7 @@ function attachRoutes(router) {
             });
         }
 
-        bcrypt.compare(value.password, user.password, (error, result) => {
+        bcrypt.compare(value.password, user.password, (error) => {
             if (error) {
                 console.log("Invalid password");
                 return response.status(httpStatus.BAD_REQUEST).json({
@@ -78,7 +78,6 @@ function attachRoutes(router) {
                 });
             }
 
-            const identifier = user._id.toString();
             response.status(httpStatus.CREATED).send(toExternal(user));
         });
     });
