@@ -8,7 +8,7 @@ const { Types } = mongoose;
 
 function toExternal(account) {
     return {
-        identifier: account.id,
+        id: account.id,
         userName: account.userName,
         firstName: account.firstName,
         lastName: account.lastName,
@@ -20,41 +20,42 @@ function toExternal(account) {
         state: account.state,
         country: account.country,
         zipCode: account.zipCode,
+        createdAt: account.createdAt,
     };
 }
 
+const accountSchema = joi.object({
+    userName: joi
+        .string()
+        .trim()
+        .alphanum()
+        .lowercase()
+        .min(3)
+        .max(30)
+        .required(),
+    firstName: joi.string().trim().required(),
+    lastName: joi.string().trim().required(),
+    emailAddress: joi.string().email().trim().empty("").default(null),
+    phoneNumber: joi.string().trim().allow(null).empty("").default(null),
+    addressLine1: joi.string().trim().allow(null).empty("").default(null),
+    addressLine2: joi.string().trim().allow(null).empty("").default(null),
+    city: joi.string().trim().allow(null).empty("").default(null),
+    state: joi.string().trim().allow(null).empty("").default(null),
+    country: joi.string().trim().allow(null).empty("").default(null),
+    zipCode: joi.string().trim().allow(null).empty("").default(null),
+});
+
+const filterSchema = joi.object({
+    page: joi.number().integer().default(1),
+    limit: joi
+        .number()
+        .integer()
+        .min(10)
+        .max(constants.PAGINATE_MAX_LIMIT)
+        .default(20),
+});
+
 function attachRoutes(router) {
-    const accountSchema = joi.object({
-        userName: joi
-            .string()
-            .trim()
-            .alphanum()
-            .lowercase()
-            .min(3)
-            .max(30)
-            .required(),
-        firstName: joi.string().trim().required(),
-        lastName: joi.string().trim().required(),
-        emailAddress: joi.string().email(),
-        phoneNumber: joi.string(),
-        addressLine1: joi.string(),
-        addressLine2: joi.string(),
-        city: joi.string(),
-        state: joi.string(),
-        country: joi.string(),
-        zipCode: joi.string(),
-    });
-
-    const filterSchema = joi.object({
-        page: joi.number().integer().default(1),
-        limit: joi
-            .number()
-            .integer()
-            .min(10)
-            .max(constants.PAGINATE_MAX_LIMIT)
-            .default(10),
-    });
-
     router.post("/accounts", async (request, response) => {
         const body = request.body;
         const parameters = {
@@ -73,35 +74,33 @@ function attachRoutes(router) {
         const { error, value } = accountSchema.validate(parameters);
 
         if (error) {
-            response.status(httpStatus.BAD_REQUEST).json({
+            return response.status(httpStatus.BAD_REQUEST).json({
                 message: error.message,
             });
-        } else {
-            /* If a deleted account already uses the specified user name, the new account cannot
-             * use it.
-             */
-            const ownerId = new mongoose.ObjectId(request.user.identifier);
-            const account = await Account.findOne({
-                userName: value.userName,
-                ownerId,
-            }).exec();
-
-            if (account) {
-                response.status(httpStatus.BAD_REQUEST).json({
-                    message:
-                        "An account with the specified user name already exists.",
-                });
-            } else {
-                value.ownerId = ownerId;
-                value.deleted = false;
-                const newAccount = new Account(value);
-                await newAccount.save();
-
-                response
-                    .status(httpStatus.CREATED)
-                    .json(toExternal(newAccount));
-            }
         }
+
+        /* If a deleted account already uses the specified user name, the new account cannot
+         * use it.
+         */
+        const ownerId = new Types.ObjectId(request.user.identifier);
+        const account = await Account.findOne({
+            userName: value.userName,
+            ownerId,
+        }).exec();
+
+        if (account) {
+            return response.status(httpStatus.BAD_REQUEST).json({
+                message:
+                    "An account with the specified user name already exists.",
+            });
+        }
+
+        value.ownerId = ownerId;
+        value.deleted = false;
+        const newAccount = new Account(value);
+        await newAccount.save();
+
+        response.status(httpStatus.CREATED).json(toExternal(newAccount));
     });
 
     router.get("/accounts", async (request, response) => {
@@ -111,44 +110,57 @@ function attachRoutes(router) {
             limit: body.limit,
         };
         const { error, value } = filterSchema.validate(parameters);
+
         if (error) {
-            response.status(httpStatus.BAD_REQUEST).json({
+            return response.status(httpStatus.BAD_REQUEST).json({
                 message: error.message,
             });
-        } else {
-            const ownerId = new Types.ObjectId(request.user.identifier);
-            const accounts = await Account.paginate(
-                { ownerId, deleted: false },
-                {
-                    limit: value.limit,
-                    page: value,
-                    lean: true,
-                    leanWithId: true,
-                    pagination: true,
-                }
-            );
-            response.status(httpStatus.OK).json(accounts.docs.map(toExternal));
         }
+
+        const ownerId = new Types.ObjectId(request.user.identifier);
+        const accounts = await Account.paginate(
+            { ownerId, deleted: false },
+            {
+                limit: value.limit,
+                page: value,
+                lean: true,
+                leanWithId: true,
+                pagination: true,
+            }
+        );
+        response.status(httpStatus.OK).json(accounts.docs.map(toExternal));
     });
 
+    const identifierPattern = /^[a-z0-9]{24}$/;
     /* An account created by one user should be hidden from another user. */
     router.get("/accounts/:identifier", async (request, response) => {
+        if (!identifierPattern.test(request.params.identifier)) {
+            return response.status(httpStatus.BAD_REQUEST).json({
+                message: "The specified account identifier is invalid.",
+            });
+        }
+
         const ownerId = new Types.ObjectId(request.user.identifier);
         const id = new Types.ObjectId(request.params.identifier);
         const account = await Account.findById(id)
             .and([{ ownerId: ownerId }, { deleted: false }])
             .exec();
         if (account) {
-            response.status(httpStatus.OK).json(toExternal(account));
-        } else {
-            response.status(httpStatus.NOT_FOUND).json({
-                message:
-                    "Cannot find an account with the specified identifier.",
-            });
+            return response.status(httpStatus.OK).json(toExternal(account));
         }
+
+        response.status(httpStatus.NOT_FOUND).json({
+            message: "Cannot find an account with the specified identifier.",
+        });
     });
 
     router.put("/accounts/:identifier", async (request, response) => {
+        if (!identifierPattern.test(request.params.identifier)) {
+            return response.status(httpStatus.BAD_REQUEST).json({
+                message: "The specified account identifier is invalid.",
+            });
+        }
+
         const body = request.body;
         const parameters = {
             userName: body.userName,
@@ -166,27 +178,25 @@ function attachRoutes(router) {
         const { error, value } = accountSchema.validate(parameters);
 
         if (error) {
-            response.status(httpStatus.BAD_REQUEST).json({
+            return response.status(httpStatus.BAD_REQUEST).json({
                 message: error.message,
             });
-        } else {
-            const _id = new Types.ObjectId(request.params.identifier);
-            const ownerId = new Types.ObjectId(request.user.identifier);
-
-            const account = await Account.findOneAndUpdate(
-                { _id, ownerId, deleted: false },
-                value,
-                { new: true }
-            ).exec();
-            if (account) {
-                response.status(httpStatus.OK).json(toExternal(account));
-            } else {
-                response.status(httpStatus.NOT_FOUND).json({
-                    message:
-                        "Cannot find an account with the specified identifier.",
-                });
-            }
         }
+        const _id = new Types.ObjectId(request.params.identifier);
+        const ownerId = new Types.ObjectId(request.user.identifier);
+
+        const account = await Account.findOneAndUpdate(
+            { _id, ownerId, deleted: false },
+            value,
+            { new: true }
+        ).exec();
+        if (account) {
+            return response.status(httpStatus.OK).json(toExternal(account));
+        }
+
+        response.status(httpStatus.NOT_FOUND).json({
+            message: "Cannot find an account with the specified identifier.",
+        });
     });
 
     router.delete("/accounts/:identifier", async (request, response) => {

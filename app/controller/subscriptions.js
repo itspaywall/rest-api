@@ -142,7 +142,7 @@ function attachRoutes(router) {
             });
         } else {
             const ownerId = new Types.ObjectId(request.user.identifier);
-            const subscriptions = await Account.paginate(
+            const subscriptions = await Subscription.paginate(
                 { ownerId, deleted: false },
                 {
                     limit: value.limit,
