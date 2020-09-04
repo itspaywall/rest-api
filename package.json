@@ -14,6 +14,7 @@
         "@shelf/jest-mongodb": "^1.2.2",
         "bcrypt": "^5.0.0",
         "cors": "^2.8.5",
+        "date-fns": "^2.16.1",
         "dotenv": "^8.2.0",
         "express": "~4.16.1",
         "express-jwt": "^6.0.0",
