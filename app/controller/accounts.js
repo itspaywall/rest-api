@@ -1,8 +1,12 @@
 const mongoose = require("mongoose");
 const joi = require("joi");
+const assert = require("assert");
 const constants = require("../util/constants");
 const httpStatus = require("../util/httpStatus");
 const Account = require("../model/account");
+const subMonths = require("date-fns/subMonths");
+const startOfDay = require("date-fns/startOfDay");
+const endOfDay = require("date-fns/endOfDay");
 
 const { Types } = mongoose;
 
@@ -53,6 +57,25 @@ const filterSchema = joi.object({
         .min(10)
         .max(constants.PAGINATE_MAX_LIMIT)
         .default(20),
+    dateRange: joi
+        .string()
+        .valid(
+            "all_time",
+            "last_3_months",
+            "last_6_months",
+            "last_9_months",
+            "last_12_months",
+            "last_15_months",
+            "last_18_months",
+            "custom"
+        )
+        .default("all_time"),
+    startDate: joi
+        .date()
+        .when("date_range", { is: "custom", then: joi.required() }),
+    endDate: joi
+        .date()
+        .when("date_range", { is: "custom", then: joi.required() }),
 });
 
 function attachRoutes(router) {
@@ -104,31 +127,78 @@ function attachRoutes(router) {
     });
 
     router.get("/accounts", async (request, response) => {
-        const body = request.body;
+        const query = request.query;
         const parameters = {
-            page: body.page,
-            limit: body.limit,
+            page: query.page,
+            limit: query.limit,
+            dateRange: query.date_range,
+            startDate: query.start_date,
+            endDate: query.end_date,
         };
-        const { error, value } = filterSchema.validate(parameters);
 
+        const { error, value } = filterSchema.validate(parameters);
         if (error) {
             return response.status(httpStatus.BAD_REQUEST).json({
                 message: error.message,
             });
         }
 
+        let startDate = value.startDate;
+        let endDate = value.endDate;
+        const dateRange = value.dateRange;
+        if (dateRange !== "custom" && dateRange !== "all_time") {
+            const months = {
+                last_3_months: 3,
+                last_6_months: 6,
+                last_9_months: 9,
+                last_12_months: 12,
+                last_15_months: 15,
+                last_18_months: 18,
+            };
+            const amount = months[dateRange];
+            assert(
+                amount,
+                "The specified date range is invalid. How did Joi let it through?"
+            );
+            startDate = new Date();
+            subMonths(startDate, amount);
+
+            endDate = new Date();
+        }
+
         const ownerId = new Types.ObjectId(request.user.identifier);
-        const accounts = await Account.paginate(
-            { ownerId, deleted: false },
-            {
-                limit: value.limit,
-                page: value,
-                lean: true,
-                leanWithId: true,
-                pagination: true,
-            }
-        );
-        response.status(httpStatus.OK).json(accounts.docs.map(toExternal));
+        const filters = {
+            ownerId,
+            deleted: false,
+        };
+        if (dateRange !== "all_time") {
+            filters.createdAt = {
+                $gte: startOfDay(startDate),
+                $lte: endOfDay(endDate),
+            };
+        }
+
+        const accounts = await Account.paginate(filters, {
+            limit: value.limit,
+            page: value.page + 1,
+            lean: true,
+            leanWithId: true,
+            pagination: true,
+        });
+
+        const result = {
+            totalRecords: accounts.totalDocs,
+            page: value.page,
+            limit: accounts.limit,
+            totalPages: accounts.totalPages,
+            previousPage: accounts.prevPage ? accounts.prevPage - 1 : null,
+            nextPage: accounts.nextPage ? accounts.nextPage - 1 : null,
+            hasPreviousPage: accounts.hasPrevPage,
+            hasNextPage: accounts.hasNextPage,
+        };
+
+        result.records = accounts.docs.map(toExternal);
+        response.status(httpStatus.OK).json(result);
     });
 
     const identifierPattern = /^[a-z0-9]{24}$/;
