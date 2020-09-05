@@ -50,7 +50,7 @@ const accountSchema = joi.object({
 });
 
 const filterSchema = joi.object({
-    page: joi.number().integer().default(1),
+    page: joi.number().integer().default(0),
     limit: joi
         .number()
         .integer()
@@ -278,13 +278,12 @@ function attachRoutes(router) {
             { new: true }
         ).exec();
         if (account) {
-            response.status(httpStatus.NO_CONTENT).send();
-        } else {
-            response.status(httpStatus.NOT_FOUND).json({
-                message:
-                    "Cannot find an account with the specified identifier.",
-            });
+            return response.status(httpStatus.NO_CONTENT).send();
         }
+
+        response.status(httpStatus.NOT_FOUND).json({
+            message: "Cannot find an account with the specified identifier.",
+        });
     });
 }
 
