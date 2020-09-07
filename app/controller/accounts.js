@@ -196,7 +196,6 @@ function attachRoutes(router) {
             hasPreviousPage: accounts.hasPrevPage,
             hasNextPage: accounts.hasNextPage,
         };
-
         result.records = accounts.docs.map(toExternal);
         response.status(httpStatus.OK).json(result);
     });

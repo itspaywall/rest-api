@@ -12,7 +12,7 @@ const { Types } = mongoose;
 
 function toExternal(plan) {
     return {
-        identifier: plan.id,
+        id: plan.id,
         name: plan.name,
         code: plan.code,
         description: plan.description,
@@ -25,7 +25,7 @@ function toExternal(plan) {
         term: plan.term,
         termUnit: plan.termUnit,
         renews: plan.renews,
-        createdOn: plan.createdOn,
+        createdAt: plan.createdAt,
     };
 }
 
@@ -161,10 +161,10 @@ function attachRoutes(router) {
                 amount,
                 "The specified date range is invalid. How did Joi let it through?"
             );
-            startDate = new Date();
-            subMonths(startDate, amount);
+            startDate = subMonths(new Date(), amount);
 
             endDate = new Date();
+            console.log(startDate, endDate, amount);
         }
 
         const ownerId = new Types.ObjectId(request.user.identifier);
@@ -181,7 +181,7 @@ function attachRoutes(router) {
 
         const plans = await Plan.paginate(filters, {
             limit: value.limit,
-            page: value.page,
+            page: value.page + 1,
             lean: true,
             leanWithId: true,
             pagination: true,
@@ -197,9 +197,8 @@ function attachRoutes(router) {
             hasPreviousPage: plans.hasPrevPage,
             hasNextPage: plans.hasNextPage,
         };
-
         result.records = plans.docs.map(toExternal);
-        response.status(httpStatus.OK).json(plans.docs.map(toExternal));
+        response.status(httpStatus.OK).json(result);
     });
 
     const identifierPattern = /^[a-z0-9]{24}$/;
