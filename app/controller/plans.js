@@ -30,7 +30,7 @@ function toExternal(plan) {
 }
 
 const planSchema = joi.object({
-    name: joi.string().min(2).max(100).required(),
+    name: joi.string().trim().min(2).max(100).required(),
     code: joi.string().trim().lowercase().alphanum().min(2).max(20).required(),
     description: joi
         .string()
@@ -162,9 +162,7 @@ function attachRoutes(router) {
                 "The specified date range is invalid. How did Joi let it through?"
             );
             startDate = subMonths(new Date(), amount);
-
             endDate = new Date();
-            console.log(startDate, endDate, amount);
         }
 
         const ownerId = new Types.ObjectId(request.user.identifier);

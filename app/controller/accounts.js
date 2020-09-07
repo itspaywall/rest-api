@@ -160,9 +160,7 @@ function attachRoutes(router) {
                 amount,
                 "The specified date range is invalid. How did Joi let it through?"
             );
-            startDate = new Date();
-            subMonths(startDate, amount);
-
+            startDate = subMonths(new Date(), amount);
             endDate = new Date();
         }
 
