@@ -73,6 +73,11 @@ const accountSchema = new Schema({
     },
 });
 
+accountSchema.index({
+    userName: "text",
+    firstName: "text",
+    lastName: "text",
+});
 accountSchema.plugin(paginate);
 const Account = mongoose.model("Account", accountSchema);
 
