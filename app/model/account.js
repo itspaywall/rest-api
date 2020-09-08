@@ -29,9 +29,9 @@ const accountSchema = new Schema({
         trim: true,
         type: String,
     },
-    company: {
+    /*company: {
         type: String,
-    },
+    },*/
     emailAddress: {
         type: String,
     },

@@ -50,7 +50,7 @@ const accountSchema = joi.object({
 });
 
 const filterSchema = joi.object({
-    page: joi.number().integer().default(1),
+    page: joi.number().integer().default(0),
     limit: joi
         .number()
         .integer()
@@ -160,9 +160,7 @@ function attachRoutes(router) {
                 amount,
                 "The specified date range is invalid. How did Joi let it through?"
             );
-            startDate = new Date();
-            subMonths(startDate, amount);
-
+            startDate = subMonths(new Date(), amount);
             endDate = new Date();
         }
 
@@ -196,7 +194,6 @@ function attachRoutes(router) {
             hasPreviousPage: accounts.hasPrevPage,
             hasNextPage: accounts.hasNextPage,
         };
-
         result.records = accounts.docs.map(toExternal);
         response.status(httpStatus.OK).json(result);
     });
@@ -278,13 +275,12 @@ function attachRoutes(router) {
             { new: true }
         ).exec();
         if (account) {
-            response.status(httpStatus.NO_CONTENT).send();
-        } else {
-            response.status(httpStatus.NOT_FOUND).json({
-                message:
-                    "Cannot find an account with the specified identifier.",
-            });
+            return response.status(httpStatus.NO_CONTENT).send();
         }
+
+        response.status(httpStatus.NOT_FOUND).json({
+            message: "Cannot find an account with the specified identifier.",
+        });
     });
 }
 
