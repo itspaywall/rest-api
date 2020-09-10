@@ -91,6 +91,10 @@ const planSchema = new Schema({
     },
 });
 
+planSchema.index({
+    name: "text",
+    code: "text",
+});
 planSchema.plugin(paginate);
 const Plan = mongoose.model("Plan", planSchema);
 
