@@ -120,9 +120,10 @@ function attachRoutes(router) {
             });
         }
 
-        value.ownerId = ownerId;
-        value.deleted = false;
         const newAccount = new Account(value);
+        newAccount.deleted = false;
+        newAccount.ownerId = ownerId;
+        newAccount.subscriptionIds = [];
         await newAccount.save();
 
         response.status(httpStatus.CREATED).json(toExternal(newAccount));

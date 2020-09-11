@@ -8,6 +8,10 @@ const accountSchema = new Schema({
         required: true,
         type: Schema.Types.ObjectId,
     },
+    subscriptionIds: {
+        required: true,
+        type: [Schema.Types.ObjectId],
+    },
     userName: {
         minlength: 2,
         maxlength: 100,

@@ -8,16 +8,17 @@ const validateInteger = {
     message: (props) => `${props.value} should be an integer.`,
 };
 
+// The trial period does not necessarily have to coincide with the first billing cycle.
 const subscriptionSchema = new Schema({
     ownerId: {
         type: Schema.Types.ObjectId,
         required: true,
     },
-    planId: {
+    accountId: {
         type: Schema.Types.ObjectId,
         required: true,
     },
-    accountId: {
+    planId: {
         type: Schema.Types.ObjectId,
         required: true,
     },
@@ -26,19 +27,33 @@ const subscriptionSchema = new Schema({
         validate: validateInteger,
         required: true,
     },
-    trialStart: {
-        type: Date,
-        default: null,
+    billingPeriod: {
+        type: Number,
+        validate: validateInteger,
+        default: 0,
         required: true,
     },
-    trialEnd: {
-        type: Date,
-        default: null,
+    billingPeriodUnit: {
+        type: String,
+        enum: ["days", "months"],
+        default: "days",
         required: true,
     },
     setupFee: {
         type: Number,
         default: 0,
+        required: true,
+    },
+    trialPeriod: {
+        type: Number,
+        validate: validateInteger,
+        default: 0,
+        required: true,
+    },
+    trialPeriodUnit: {
+        type: String,
+        enum: ["days", "months"],
+        default: "days",
         required: true,
     },
     term: {
@@ -58,30 +73,30 @@ const subscriptionSchema = new Schema({
         default: true,
         required: true,
     },
+    startsAt: {
+        type: Date,
+        default: null,
+        required: true,
+    },
     activatedAt: {
         type: Date,
-        default: Date.now,
-        required: true,
+        default: null,
     },
     cancelledAt: {
         type: Date,
         default: null,
-        required: true,
     },
     pausedAt: {
         type: Date,
         default: null,
-        required: true,
     },
     currentPeriodStart: {
         type: Date,
-        default: Date.now,
-        required: true,
+        default: null,
     },
     currentPeriodEnd: {
         type: Date,
-        default: Date.now,
-        required: true,
+        default: null,
     },
     createdAt: {
         type: Date,
@@ -91,11 +106,6 @@ const subscriptionSchema = new Schema({
     updatedAt: {
         type: Date,
         default: Date.now,
-        required: true,
-    },
-    deleted: {
-        type: Boolean,
-        default: false,
         required: true,
     },
 });
