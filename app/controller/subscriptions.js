@@ -2,6 +2,10 @@ const mongoose = require("mongoose");
 const joi = require("joi");
 const constants = require("../util/constants");
 const httpStatus = require("../util/httpStatus");
+const assert = require("assert");
+const subMonths = require("date-fns/subMonths");
+const startOfDay = require("date-fns/startOfDay");
+const endOfDay = require("date-fns/endOfDay");
 const Subscription = require("../model/subscription");
 const Account = require("../model/account");
 const Plan = require("../model/plan");
@@ -92,13 +96,32 @@ const subscriptionSchema = joi.object({
 });
 
 const filterSchema = joi.object({
-    page: joi.number().integer().default(1),
+    page: joi.number().integer().default(0),
     limit: joi
         .number()
         .integer()
         .min(10)
         .max(constants.PAGINATE_MAX_LIMIT)
-        .default(10),
+        .default(20),
+    dateRange: joi
+        .string()
+        .valid(
+            "all_time",
+            "last_3_months",
+            "last_6_months",
+            "last_9_months",
+            "last_12_months",
+            "last_15_months",
+            "last_18_months",
+            "custom"
+        )
+        .default("all_time"),
+    startDate: joi
+        .date()
+        .when("date_range", { is: "custom", then: joi.required() }),
+    endDate: joi
+        .date()
+        .when("date_range", { is: "custom", then: joi.required() }),
 });
 
 // NOTE: Input is not sanitized to prevent XSS attacks.
@@ -181,10 +204,13 @@ function attachRoutes(router) {
     });
 
     router.get("/subscriptions", async (request, response) => {
-        const body = request.body;
+        const query = request.query;
         const parameters = {
-            page: body.page,
-            limit: body.limit,
+            page: query.page,
+            limit: query.limit,
+            dateRange: query.date_range,
+            startDate: query.start_date,
+            endDate: query.end_date,
         };
         const { error, value } = filterSchema.validate(parameters);
         if (error) {
@@ -193,17 +219,46 @@ function attachRoutes(router) {
             });
         }
 
+        let startDate = value.startDate;
+        let endDate = value.endDate;
+        const dateRange = value.dateRange;
+        if (dateRange !== "custom" && dateRange !== "all_time") {
+            const months = {
+                last_3_months: 3,
+                last_6_months: 6,
+                last_9_months: 9,
+                last_12_months: 12,
+                last_15_months: 15,
+                last_18_months: 18,
+            };
+            const amount = months[dateRange];
+            assert(
+                amount,
+                "The specified date range is invalid. How did Joi let it through?"
+            );
+            startDate = subMonths(new Date(), amount);
+            endDate = new Date();
+        }
+
         const ownerId = new Types.ObjectId(request.user.identifier);
-        const subscriptions = await Subscription.paginate(
-            { ownerId },
-            {
-                limit: value.limit,
-                page: value,
-                lean: true,
-                leanWithId: true,
-                pagination: true,
-            }
-        );
+        const filters = {
+            ownerId,
+            deleted: false,
+        };
+        if (dateRange !== "all_time") {
+            filters.createdAt = {
+                $gte: startOfDay(startDate),
+                $lte: endOfDay(endDate),
+            };
+        }
+
+        const subscriptions = await Subscription.paginate(filters, {
+            limit: value.limit,
+            page: value + 1,
+            lean: true,
+            leanWithId: true,
+            pagination: true,
+        });
 
         /* As the docs indicate, we cannot use `$lookup`` on a sharded collection. We will shard
          * the collection in the futurue. Therefore, the best practice workaround is to perform

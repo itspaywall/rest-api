@@ -139,7 +139,6 @@ function attachRoutes(router) {
             endDate: query.end_date,
             search: query.search,
         };
-
         const { error, value } = filterSchema.validate(parameters);
         if (error) {
             return response.status(httpStatus.BAD_REQUEST).json({
