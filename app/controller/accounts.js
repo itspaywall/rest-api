@@ -7,6 +7,7 @@ const Account = require("../model/account");
 const subMonths = require("date-fns/subMonths");
 const startOfDay = require("date-fns/startOfDay");
 const endOfDay = require("date-fns/endOfDay");
+const misc = require("../util/misc");
 
 const { Types } = mongoose;
 
@@ -76,6 +77,7 @@ const filterSchema = joi.object({
     endDate: joi
         .date()
         .when("date_range", { is: "custom", then: joi.required() }),
+    search: joi.string().trim().allow(null).empty("").default(null),
 });
 
 function attachRoutes(router) {
@@ -118,9 +120,10 @@ function attachRoutes(router) {
             });
         }
 
-        value.ownerId = ownerId;
-        value.deleted = false;
         const newAccount = new Account(value);
+        newAccount.deleted = false;
+        newAccount.ownerId = ownerId;
+        newAccount.subscriptionIds = [];
         await newAccount.save();
 
         response.status(httpStatus.CREATED).json(toExternal(newAccount));
@@ -134,8 +137,8 @@ function attachRoutes(router) {
             dateRange: query.date_range,
             startDate: query.start_date,
             endDate: query.end_date,
+            search: query.search,
         };
-
         const { error, value } = filterSchema.validate(parameters);
         if (error) {
             return response.status(httpStatus.BAD_REQUEST).json({
@@ -174,6 +177,15 @@ function attachRoutes(router) {
                 $gte: startOfDay(startDate),
                 $lte: endOfDay(endDate),
             };
+        }
+
+        if (value.search) {
+            const regex = new RegExp(misc.escapeRegex(value.search), "i");
+            filters.$or = [
+                { userName: regex },
+                { firstName: regex },
+                { lastName: regex },
+            ];
         }
 
         const accounts = await Account.paginate(filters, {

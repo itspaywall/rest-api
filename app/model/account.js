@@ -8,6 +8,10 @@ const accountSchema = new Schema({
         required: true,
         type: Schema.Types.ObjectId,
     },
+    subscriptionIds: {
+        required: true,
+        type: [Schema.Types.ObjectId],
+    },
     userName: {
         minlength: 2,
         maxlength: 100,
@@ -73,6 +77,11 @@ const accountSchema = new Schema({
     },
 });
 
+accountSchema.index({
+    userName: "text",
+    firstName: "text",
+    lastName: "text",
+});
 accountSchema.plugin(paginate);
 const Account = mongoose.model("Account", accountSchema);
 
