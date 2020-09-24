@@ -158,21 +158,19 @@ function attachRoutes(router) {
             );
         }
 
-        /* Ensure that the plan is owned by the current user and not deleted. */
+        /* Ensure that the plan is owned by the current user. */
         const planId = new Types.ObjectId(value.planId);
-        const plan = await Plan.findById(planId)
-            .and([{ ownerId, deleted: false }])
-            .exec();
+        const plan = await Plan.findById(planId).and([{ ownerId }]).exec();
         if (!plan) {
             return response.status(httpStatus.BAD_REQUEST).json({
                 message: "The specified plan identifier is invalid.",
             });
         }
 
-        /* Ensure that the account is owned by the current user and not deleted. */
+        /* Ensure that the account is owned by the current user. */
         const accountId = new Types.ObjectId(value.accountId);
         const account = await Account.findById(accountId)
-            .and([{ ownerId }, { deleted: false }])
+            .and([{ ownerId }])
             .exec();
         if (!account) {
             return response.status(httpStatus.BAD_REQUEST).json({
@@ -243,7 +241,6 @@ function attachRoutes(router) {
         const ownerId = new Types.ObjectId(request.user.identifier);
         const filters = {
             ownerId,
-            deleted: false,
         };
         if (dateRange !== "all_time") {
             filters.createdAt = {
@@ -251,6 +248,8 @@ function attachRoutes(router) {
                 $lte: endOfDay(endDate),
             };
         }
+
+        console.log(filters);
 
         const subscriptions = await Subscription.paginate(filters, {
             limit: value.limit,
@@ -302,6 +301,8 @@ function attachRoutes(router) {
         };
         result.records = subscriptions.docs.map(toExternal);
         response.status(httpStatus.OK).json(result);
+
+        console.log(result);
     });
 
     /* A subscription created by one user should be hidden from another user. */
@@ -309,7 +310,7 @@ function attachRoutes(router) {
         const ownerId = new Types.ObjectId(request.user.identifier);
         const id = new Types.ObjectId(request.params.id);
         const subscription = await Subscription.findById(id)
-            .and([{ ownerId }, { deleted: false }])
+            .and([{ ownerId }])
             .exec();
         if (subscription) {
             const plan = await Plan.findById(subscription.planId).exec();
