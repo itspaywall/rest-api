@@ -140,7 +140,7 @@ function attachRoutes(router) {
             trialPeriodUnit: body.trialPeriodUnit,
             term: body.term,
             termUnit: body.termUnit,
-            startsAt: body.starts,
+            startsAt: body.startsAt,
             renews: body.renews,
         };
         const { error, value } = subscriptionSchema.validate(parameters);
@@ -180,11 +180,13 @@ function attachRoutes(router) {
 
         /* Ensure that the plan is not subscribed by the account. */
         const subscriptions = await Subscription.find({
-            _id: { $in: account.subscriptions },
+            _id: { $in: account.subscriptionIds },
             ownerId,
         }).exec();
         const subscribed =
-            subscriptions.findIndex((item) => item.planId == value.planId) >= 0;
+            subscriptions.findIndex(
+                (item) => item.planId.toString() === value.planId.toString()
+            ) >= 0;
         if (subscribed) {
             return response.status(httpStatus.BAD_REQUEST).json({
                 message: "The specified plan is already subscribed.",
