@@ -21,6 +21,7 @@ function toExternal(subscription) {
         ownerId: subscription.ownerId,
         planId: subscription.planId,
         accountId: subscription.accountId,
+        status: subscription.status,
         quantity: subscription.quantity,
         billingPeriod: subscription.billingPeriod,
         billingPeriodUnit: subscription.billingPeriodUnit,
@@ -122,6 +123,20 @@ const filterSchema = joi.object({
     endDate: joi
         .date()
         .when("date_range", { is: "custom", then: joi.required() }),
+    subscriptionStatus: joi
+        .string()
+        .valid(
+            "all",
+            "future",
+            "in_trial",
+            "active",
+            "pending",
+            "halted",
+            "canceled",
+            "expired",
+            "paused"
+        )
+        .default("all"),
 });
 
 // NOTE: Input is not sanitized to prevent XSS attacks.
@@ -194,6 +209,7 @@ function attachRoutes(router) {
         }
 
         value.ownerId = ownerId;
+        value.status = "future";
         const newSubscription = new Subscription(value);
         await newSubscription.save();
 
@@ -211,6 +227,7 @@ function attachRoutes(router) {
             dateRange: query.date_range,
             startDate: query.start_date,
             endDate: query.end_date,
+            subscriptionStatus: query.subscription_status,
         };
         const { error, value } = filterSchema.validate(parameters);
         if (error) {
@@ -251,7 +268,9 @@ function attachRoutes(router) {
             };
         }
 
-        console.log(filters);
+        if (value.subscriptionStatus !== "all") {
+            filters.status = value.subscriptionStatus;
+        }
 
         const subscriptions = await Subscription.paginate(filters, {
             limit: value.limit,

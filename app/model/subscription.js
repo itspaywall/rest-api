@@ -27,6 +27,21 @@ const subscriptionSchema = new Schema({
         validate: validateInteger,
         required: true,
     },
+    status: {
+        type: String,
+        required: true,
+        enum: [
+            /* The subscription was created and is neither in trial nor active. */
+            "future",
+            "in_trial",
+            "active",
+            "pending",
+            "halted",
+            "canceled",
+            "expired",
+            "paused",
+        ],
+    },
     billingPeriod: {
         type: Number,
         validate: validateInteger,
