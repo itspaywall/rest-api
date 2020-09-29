@@ -1,6 +1,5 @@
-const amqp = require("amqplib/callback_api");
-
-function sendMessage(queue, source, destination, subject, body) {
+const amqp = require("amqplib");
+async function sendMessage(queue, source, destination, subject, body) {
     const message = {
         queue: queue,
         source: source,
@@ -8,31 +7,23 @@ function sendMessage(queue, source, destination, subject, body) {
         subject: subject,
         body: body,
     };
-    let connectionStatus = new Promise((response, reject) => {
-        amqp.connect("amqp://localhost", (connectionError, connection) => {
-            if (connectionError) {
-                return reject(connectionError);
-            }
+    const QUEUE_NAME = queue;
+    const connection = await amqp.connect("amqp://localhost");
+    const channel = await connection.createChannel();
+    await channel.assertQueue(QUEUE_NAME, { durable: true });
+    const payload = JSON.stringify(message);
+    await channel.sendToQueue(
+        QUEUE_NAME,
+        Buffer.from(payload, { persistent: true })
+    );
+    console.log(`Placed a message on the ${QUEUE_NAME} channel.`);
 
-            connection.createChannel((channelError, channel) => {
-                if (channelError) {
-                    return reject(channelError);
-                }
-                const queue = message["queue"];
-                channel.assertQueue(queue, { durable: true });
-
-                payload = JSON.stringify(message);
-                channel.sendToQueue(
-                    queue,
-                    Buffer.from(payload, { persistent: true })
-                );
-                console.log(`Enqueued a message on queue : ${queue}`);
-            });
-        });
-    });
-    return connectionStatus;
+    /* If the connection is not closed, the process continues to live.
+     * Therefore, close the connection to terminate the process.
+     */
+    await channel.close();
+    await connection.close();
 }
-
 module.exports = {
     sendMessage,
 };
