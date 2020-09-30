@@ -104,9 +104,6 @@ function attachRoutes(router) {
             });
         }
 
-        /* If a deleted account already uses the specified user name, the new account cannot
-         * use it.
-         */
         const ownerId = new Types.ObjectId(request.user.identifier);
         const account = await Account.findOne({
             userName: value.userName,
@@ -121,7 +118,6 @@ function attachRoutes(router) {
         }
 
         const newAccount = new Account(value);
-        newAccount.deleted = false;
         newAccount.ownerId = ownerId;
         newAccount.subscriptionIds = [];
         await newAccount.save();
@@ -170,7 +166,6 @@ function attachRoutes(router) {
         const ownerId = new Types.ObjectId(request.user.identifier);
         const filters = {
             ownerId,
-            deleted: false,
         };
         if (dateRange !== "all_time") {
             filters.createdAt = {
@@ -222,7 +217,7 @@ function attachRoutes(router) {
         const ownerId = new Types.ObjectId(request.user.identifier);
         const id = new Types.ObjectId(request.params.identifier);
         const account = await Account.findById(id)
-            .and([{ ownerId: ownerId }, { deleted: false }])
+            .and([{ ownerId: ownerId }])
             .exec();
         if (account) {
             return response.status(httpStatus.OK).json(toExternal(account));
@@ -265,29 +260,12 @@ function attachRoutes(router) {
         const ownerId = new Types.ObjectId(request.user.identifier);
 
         const account = await Account.findOneAndUpdate(
-            { _id, ownerId, deleted: false },
+            { _id, ownerId },
             value,
             { new: true }
         ).exec();
         if (account) {
             return response.status(httpStatus.OK).json(toExternal(account));
-        }
-
-        response.status(httpStatus.NOT_FOUND).json({
-            message: "Cannot find an account with the specified identifier.",
-        });
-    });
-
-    router.delete("/accounts/:identifier", async (request, response) => {
-        const _id = new Types.ObjectId(request.params.identifier);
-        const ownerId = new Types.ObjectId(request.user.identifier);
-        const account = await Account.findOneAndUpdate(
-            { _id, ownerId, deleted: false },
-            { deleted: true },
-            { new: true }
-        ).exec();
-        if (account) {
-            return response.status(httpStatus.NO_CONTENT).send();
         }
 
         response.status(httpStatus.NOT_FOUND).json({

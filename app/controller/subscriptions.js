@@ -21,16 +21,15 @@ function toExternal(subscription) {
         ownerId: subscription.ownerId,
         planId: subscription.planId,
         accountId: subscription.accountId,
-        quantity: subscription.quantity,
-        billingPeriod: subscription.billingPeriod,
-        billingPeriodUnit: subscription.billingPeriodUnit,
+        status: subscription.status,
+        pricePerBillingCycle: subscription.pricePerBillingCycle,
         setupFee: subscription.setupFee,
-        trialPeriod: subscription.trialPeriod,
-        trialPeriodUnit: subscription.trialPeriodUnit,
-        term: subscription.term,
-        termUnit: subscription.termUnit,
-        renews: subscription.renews,
+        quantity: subscription.quantity,
         startsAt: subscription.startsAt,
+        totalBillingCycles: subscription.totalBillingCycles,
+        renews: subscription.renews,
+        notes: subscription.notes,
+        termsAndConditions: subscription.termsAndConditions,
         activatedAt: subscription.activatedAt,
         cancelledAt: subscription.cancelledAt,
         pausedAt: subscription.pausedAt,
@@ -64,9 +63,9 @@ function toExternal(subscription) {
             name: plan.name,
             code: plan.code,
             description: plan.description,
-            billingPeriod: plan.billigPeriod,
-            billingPeriodUnit: plan.billigPeriodUnit,
-            pricePerBillingPeriod: plan.pricePerBillingPeriod,
+            billingCyclePeriod: plan.billingCyclePeriod,
+            billingCyclePeriodUnit: plan.billingCyclePeriodUnit,
+            pricePerBillingCycle: plan.pricePerBillingCycle,
             setupFee: plan.setupFee,
             trialPeriod: plan.trialPeriod,
             trialPeriodUnit: plan.trialPeriodUnit,
@@ -83,16 +82,20 @@ function toExternal(subscription) {
 const subscriptionSchema = joi.object({
     accountId: joi.string().length(24).required(),
     planId: joi.string().length(24).required(),
+    pricePerBillingCycle: joi.number().required(),
+    setupFee: joi.number().required(),
     quantity: joi.number().integer().required(),
-    billingPeriod: joi.number().integer().allow(null).default(null),
-    billingPeriodUnit: joi.string().valid("days", "months").default("days"),
-    setupFee: joi.number().allow(null).default(null),
-    trialPeriod: joi.number().integer().allow(null).default(null),
-    trialPeriodUnit: joi.string().valid("days", "months").default("days"),
-    term: joi.number().integer().default(null),
-    termUnit: joi.string().valid("days", "months").default("days"),
     startsAt: joi.date().required(),
+    totalBillingCycles: joi.number().integer().required(),
     renews: joi.boolean().default(true),
+    notes: joi.string().trim().max(200).allow(null).empty("").default(null),
+    termsAndConditions: joi
+        .string()
+        .trim()
+        .max(200)
+        .allow(null)
+        .empty("")
+        .default(null),
 });
 
 const filterSchema = joi.object({
@@ -122,6 +125,20 @@ const filterSchema = joi.object({
     endDate: joi
         .date()
         .when("date_range", { is: "custom", then: joi.required() }),
+    subscriptionStatus: joi
+        .string()
+        .valid(
+            "all",
+            "future",
+            "in_trial",
+            "active",
+            "pending",
+            "halted",
+            "canceled",
+            "expired",
+            "paused"
+        )
+        .default("all"),
 });
 
 // NOTE: Input is not sanitized to prevent XSS attacks.
@@ -132,16 +149,14 @@ function attachRoutes(router) {
         const parameters = {
             accountId: body.accountId,
             planId: body.planId,
-            quantity: body.quantity,
-            billingPeriod: body.billingPeriod,
-            billingPeriodUnit: body.billingPeriodUnit,
+            pricePerBillingCycle: body.pricePerBillingCycle,
             setupFee: body.setupFee,
-            trialPeriod: body.trialPeriod,
-            trialPeriodUnit: body.trialPeriodUnit,
-            term: body.term,
-            termUnit: body.termUnit,
+            quantity: body.quantity,
             startsAt: body.startsAt,
+            totalBillingCycles: body.totalBillingCycles,
             renews: body.renews,
+            notes: body.notes,
+            termsAndConditions: body.termsAndConditions,
         };
         const { error, value } = subscriptionSchema.validate(parameters);
         if (error) {
@@ -194,6 +209,7 @@ function attachRoutes(router) {
         }
 
         value.ownerId = ownerId;
+        value.status = "future";
         const newSubscription = new Subscription(value);
         await newSubscription.save();
 
@@ -211,6 +227,7 @@ function attachRoutes(router) {
             dateRange: query.date_range,
             startDate: query.start_date,
             endDate: query.end_date,
+            subscriptionStatus: query.subscription_status,
         };
         const { error, value } = filterSchema.validate(parameters);
         if (error) {
@@ -251,7 +268,9 @@ function attachRoutes(router) {
             };
         }
 
-        console.log(filters);
+        if (value.subscriptionStatus !== "all") {
+            filters.status = value.subscriptionStatus;
+        }
 
         const subscriptions = await Subscription.paginate(filters, {
             limit: value.limit,

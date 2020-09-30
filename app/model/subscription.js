@@ -22,21 +22,23 @@ const subscriptionSchema = new Schema({
         type: Schema.Types.ObjectId,
         required: true,
     },
-    quantity: {
-        type: Number,
-        validate: validateInteger,
-        required: true,
-    },
-    billingPeriod: {
-        type: Number,
-        validate: validateInteger,
-        default: 0,
-        required: true,
-    },
-    billingPeriodUnit: {
+    status: {
         type: String,
-        enum: ["days", "months"],
-        default: "days",
+        required: true,
+        enum: [
+            /* The subscription was created and is neither in trial nor active. */
+            "future",
+            "in_trial",
+            "active",
+            "pending",
+            "halted",
+            "canceled",
+            "expired",
+            "paused",
+        ],
+    },
+    pricePerBillingCycle: {
+        type: Number,
         required: true,
     },
     setupFee: {
@@ -44,28 +46,19 @@ const subscriptionSchema = new Schema({
         default: 0,
         required: true,
     },
-    trialPeriod: {
+    quantity: {
         type: Number,
         validate: validateInteger,
-        default: 0,
         required: true,
     },
-    trialPeriodUnit: {
-        type: String,
-        enum: ["days", "months"],
-        default: "days",
+    startsAt: {
+        type: Date,
+        default: null,
         required: true,
     },
-    term: {
+    totalBillingCycles: {
         type: Number,
         validate: validateInteger,
-        default: 0,
-        required: true,
-    },
-    termUnit: {
-        type: String,
-        enum: ["days", "months"],
-        default: "days",
         required: true,
     },
     renews: {
@@ -73,10 +66,15 @@ const subscriptionSchema = new Schema({
         default: true,
         required: true,
     },
-    startsAt: {
-        type: Date,
-        default: null,
-        required: true,
+    notes: {
+        type: String,
+        maxlength: 200,
+        trim: true,
+    },
+    termsAndConditions: {
+        type: String,
+        maxlength: 200,
+        trim: true,
     },
     activatedAt: {
         type: Date,
