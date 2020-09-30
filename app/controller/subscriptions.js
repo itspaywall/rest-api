@@ -63,9 +63,9 @@ function toExternal(subscription) {
             name: plan.name,
             code: plan.code,
             description: plan.description,
-            billingPeriod: plan.billigPeriod,
-            billingPeriodUnit: plan.billigPeriodUnit,
-            pricePerBillingPeriod: plan.pricePerBillingPeriod,
+            billingCyclePeriod: plan.billingCyclePeriod,
+            billingCyclePeriodUnit: plan.billingCyclePeriodUnit,
+            pricePerBillingCycle: plan.pricePerBillingCycle,
             setupFee: plan.setupFee,
             trialPeriod: plan.trialPeriod,
             trialPeriodUnit: plan.trialPeriodUnit,
@@ -88,8 +88,14 @@ const subscriptionSchema = joi.object({
     startsAt: joi.date().required(),
     totalBillingCycles: joi.number().integer().required(),
     renews: joi.boolean().default(true),
-    notes: joi.string().allow(null).default(""),
-    termsAndConditions: joi.string().allow(null).default(""),
+    notes: joi.string().trim().max(200).allow(null).empty("").default(null),
+    termsAndConditions: joi
+        .string()
+        .trim()
+        .max(200)
+        .allow(null)
+        .empty("")
+        .default(null),
 });
 
 const filterSchema = joi.object({

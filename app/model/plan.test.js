@@ -18,7 +18,7 @@ describe("Plan model", () => {
             description: "This is a sample plan.",
             billingPeriod: 12,
             billingPeriodUnit: "months",
-            pricePerBillingPeriod: 1000.5,
+            pricePerBillingCycle: 1000.5,
             setupFee: 500,
             trialPeriod: 14,
             trialPeriodUnit: "days",
@@ -26,7 +26,6 @@ describe("Plan model", () => {
             termUnit: "months",
             renews: true,
             createdAt: new Date(),
-            deleted: false,
         };
         const plan = new Plan(validPlan);
         const savedPlan = await plan.save();
@@ -37,8 +36,8 @@ describe("Plan model", () => {
         expect(savedPlan.description).toBe(validPlan.description);
         expect(savedPlan.billingPeriod).toBe(validPlan.billingPeriod);
         expect(savedPlan.billingPeriodUnit).toBe(validPlan.billingPeriodUnit);
-        expect(savedPlan.pricePerBillingPeriod).toBe(
-            validPlan.pricePerBillingPeriod
+        expect(savedPlan.pricePerBillingCycle).toBe(
+            validPlan.pricePerBillingCycle
         );
         expect(savedPlan.setupFee).toBe(validPlan.setupFee);
         expect(savedPlan.trialPeriod).toBe(validPlan.trialPeriod);
@@ -47,7 +46,6 @@ describe("Plan model", () => {
         expect(savedPlan.termUnit).toBe(validPlan.termUnit);
         expect(savedPlan.renews).toBe(validPlan.renews);
         expect(savedPlan.createdAt).toEqual(validPlan.createdAt);
-        expect(savedPlan.deleted).toBe(validPlan.deleted);
     });
 
     it("should ignore fields that are not in the schema", async () => {
@@ -58,7 +56,7 @@ describe("Plan model", () => {
             description: "This is a sample plan.",
             billingPeriod: 12,
             billingPeriodUnit: "months",
-            pricePerBillingPeriod: 1000.5,
+            pricePerBillingCycle: 1000.5,
             setupFee: 500,
             trialPeriod: 14,
             trialPeriodUnit: "days",
@@ -66,7 +64,6 @@ describe("Plan model", () => {
             termUnit: "months",
             renews: true,
             createdAt: new Date(),
-            deleted: false,
             favoriteFood: "Pizza",
         };
         const plan = new Plan(invalidPlan);
@@ -78,8 +75,8 @@ describe("Plan model", () => {
         expect(savedPlan.description).toBe(invalidPlan.description);
         expect(savedPlan.billingPeriod).toBe(invalidPlan.billingPeriod);
         expect(savedPlan.billingPeriodUnit).toBe(invalidPlan.billingPeriodUnit);
-        expect(savedPlan.pricePerBillingPeriod).toBe(
-            invalidPlan.pricePerBillingPeriod
+        expect(savedPlan.pricePerBillingCycle).toBe(
+            invalidPlan.pricePerBillingCycle
         );
         expect(savedPlan.setupFee).toBe(invalidPlan.setupFee);
         expect(savedPlan.trialPeriod).toBe(invalidPlan.trialPeriod);
@@ -88,7 +85,6 @@ describe("Plan model", () => {
         expect(savedPlan.termUnit).toBe(invalidPlan.termUnit);
         expect(savedPlan.renews).toBe(invalidPlan.renews);
         expect(savedPlan.createdAt).toEqual(invalidPlan.createdAt);
-        expect(savedPlan.deleted).toBe(invalidPlan.deleted);
         expect(savedPlan.favoriteFood).toBeUndefined();
     });
 
@@ -99,7 +95,7 @@ describe("Plan model", () => {
             description: "This is a sample plan.",
             billingPeriod: 12,
             billingPeriodUnit: "months",
-            pricePerBillingPeriod: 1000.5,
+            pricePerBillingCycle: 1000.5,
             setupFee: 500,
             trialPeriod: 14,
             trialPeriodUnit: "days",
@@ -107,7 +103,6 @@ describe("Plan model", () => {
             termUnit: "months",
             renews: true,
             createdAt: new Date(),
-            deleted: false,
         };
         const plan = new Plan(invalidPlan);
         let error;

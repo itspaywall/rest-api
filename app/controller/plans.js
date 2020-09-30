@@ -14,19 +14,20 @@ const { Types } = mongoose;
 function toExternal(plan) {
     return {
         id: plan.id,
+        ownerId: plan.ownerId,
         name: plan.name,
         code: plan.code,
         description: plan.description,
-        billingPeriod: plan.billigPeriod,
-        billingPeriodUnit: plan.billigPeriodUnit,
-        pricePerBillingPeriod: plan.pricePerBillingPeriod,
+        billingCyclePeriod: plan.billingCyclePeriod,
+        billingCyclePeriodUnit: plan.billingCyclePeriodUnit,
+        pricePerBillingCycle: plan.pricePerBillingCycle,
         setupFee: plan.setupFee,
+        totalBillingCycles: plan.totalBillingCycles,
         trialPeriod: plan.trialPeriod,
         trialPeriodUnit: plan.trialPeriodUnit,
-        term: plan.term,
-        termUnit: plan.termUnit,
         renews: plan.renews,
         createdAt: plan.createdAt,
+        updatedAt: plan.updatedAt,
     };
 }
 
@@ -40,14 +41,13 @@ const planSchema = joi.object({
         .allow(null)
         .empty("")
         .default(null),
-    billingPeriod: joi.number().integer().required(),
-    billingPeriodUnit: joi.string().valid("days", "months").required(),
-    pricePerBillingPeriod: joi.number().required(),
+    billingCyclePeriod: joi.number().integer().required(),
+    billingCyclePeriodUnit: joi.string().valid("days", "months").required(),
+    pricePerBillingCycle: joi.number().required(),
     setupFee: joi.number().default(0),
+    totalBillingCycles: joi.number().integer().required(),
     trialPeriod: joi.number().integer().default(0),
     trialPeriodUnit: joi.string().valid("days", "months").default("days"),
-    term: joi.number().integer().default(0),
-    termUnit: joi.string().valid("days", "months").default("term"),
     renews: joi.boolean().default(true),
 });
 
@@ -89,14 +89,13 @@ function attachRoutes(router) {
             name: body.name,
             code: body.code,
             description: body.description,
-            billingPeriod: body.billingPeriod,
-            billingPeriodUnit: body.billingPeriodUnit,
-            pricePerBillingPeriod: body.pricePerBillingPeriod,
+            billingCyclePeriod: body.billingCyclePeriod,
+            billingCyclePeriodUnit: body.billingCyclePeriodUnit,
+            pricePerBillingCycle: body.pricePerBillingCycle,
             setupFee: body.setupFee,
+            totalBillingCycles: body.totalBillingCycles,
             trialPeriod: body.trialPeriod,
             trialPeriodUnit: body.trialPeriodUnit,
-            term: body.term,
-            termUnit: body.termUnit,
             renews: body.renews,
         };
         const { error, value } = planSchema.validate(parameters);
@@ -106,9 +105,7 @@ function attachRoutes(router) {
                 message: error.message,
             });
         }
-        /* If a deleted plan already uses the specified code, the new plan cannot
-         * use it.
-         */
+
         const ownerId = new Types.ObjectId(request.user.identifier);
         const plan = await Plan.findOne({
             code: value.code,
@@ -122,7 +119,6 @@ function attachRoutes(router) {
         }
 
         value.ownerId = ownerId;
-        value.deleted = false;
         const newPlan = new Plan(value);
         await newPlan.save();
 
@@ -171,7 +167,6 @@ function attachRoutes(router) {
         const ownerId = new Types.ObjectId(request.user.identifier);
         const filters = {
             ownerId,
-            deleted: false,
         };
         if (dateRange !== "all_time") {
             filters.createdAt = {
@@ -218,9 +213,7 @@ function attachRoutes(router) {
 
         const ownerId = new Types.ObjectId(request.user.identifier);
         const id = new Types.ObjectId(request.params.identifier);
-        const plan = await Plan.findById(id)
-            .and([{ ownerId }, { deleted: false }])
-            .exec();
+        const plan = await Plan.findById(id).and([{ ownerId }]).exec();
         if (plan) {
             return response.status(httpStatus.OK).json(toExternal(plan));
         }
@@ -229,7 +222,7 @@ function attachRoutes(router) {
         });
     });
 
-    router.put("/plans/:identifier", async (request, response) => {
+    /*router.put("/plans/:identifier", async (request, response) => {
         if (!identifierPattern.test(request.params.identifier)) {
             return response.status(httpStatus.BAD_REQUEST).json({
                 message: "The specified plan identifier is invalid.",
@@ -243,7 +236,7 @@ function attachRoutes(router) {
             description: body.description,
             billingPeriod: body.billingPeriod,
             billingPeriodUnit: body.billingPeriodUnit,
-            pricePerBillingPeriod: body.pricePerBillingPeriod,
+            pricePerBillingCycle: body.pricePerBillingCycle,
             setupFee: body.setupFee,
             trialPeriod: body.trialPeriod,
             trialPeriodUnit: body.trialPeriodUnit,
@@ -262,7 +255,7 @@ function attachRoutes(router) {
         const ownerId = new Types.ObjectId(request.user.identifier);
 
         const plan = await Plan.findOneAndUpdate(
-            { _id, ownerId, deleted: false },
+            { _id, ownerId },
             value,
             { new: true }
         ).exec();
@@ -274,23 +267,7 @@ function attachRoutes(router) {
             message: "Cannot find a plan with the specified identifier.",
         });
     });
-
-    router.delete("/plans/:identifier", async (request, response) => {
-        const _id = new Types.ObjectId(request.params.identifier);
-        const ownerId = new Types.ObjectId(request.user.identifier);
-        const plan = await Plan.findOneAndUpdate(
-            { _id, ownerId, deleted: false },
-            { deleted: true },
-            { new: true }
-        ).exec();
-        if (plan) {
-            return response.status(httpStatus.NO_CONTENT).send();
-        }
-
-        response.status(httpStatus.NOT_FOUND).json({
-            message: "Cannot find a plan with the specified identifier.",
-        });
-    });
+    */
 }
 
 module.exports = {

@@ -37,7 +37,7 @@ const subscriptionSchema = new Schema({
             "paused",
         ],
     },
-    pricePerBillingPeriod: {
+    pricePerBillingCycle: {
         type: Number,
         required: true,
     },
@@ -68,11 +68,13 @@ const subscriptionSchema = new Schema({
     },
     notes: {
         type: String,
-        required: true,
+        maxlength: 200,
+        trim: true,
     },
     termsAndConditions: {
         type: String,
-        required: true,
+        maxlength: 200,
+        trim: true,
     },
     activatedAt: {
         type: Date,

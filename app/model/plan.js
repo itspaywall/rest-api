@@ -32,17 +32,17 @@ const planSchema = new Schema({
         maxlength: 200,
         trim: true,
     },
-    billingPeriod: {
+    billingCyclePeriod: {
         type: Number,
         required: true,
         validate: validateInteger,
     },
-    billingPeriodUnit: {
+    billingCyclePeriodUnit: {
         type: String,
         required: true,
         enum: ["days", "months"],
     },
-    pricePerBillingPeriod: {
+    pricePerBillingCycle: {
         type: Number,
         required: true,
     },
@@ -50,22 +50,17 @@ const planSchema = new Schema({
         type: Number,
         default: 0,
     },
+    totalBillingCycles: {
+        type: Number,
+        required: true,
+        validate: validateInteger,
+    },
     trialPeriod: {
         type: Number,
         validate: validateInteger,
         default: 0,
     },
     trialPeriodUnit: {
-        type: String,
-        enum: ["days", "months"],
-        default: "days",
-    },
-    term: {
-        type: Number,
-        validate: validateInteger,
-        default: 0,
-    },
-    termUnit: {
         type: String,
         enum: ["days", "months"],
         default: "days",
@@ -82,11 +77,6 @@ const planSchema = new Schema({
     updatedAt: {
         type: Date,
         default: Date.now,
-        required: true,
-    },
-    deleted: {
-        type: Boolean,
-        default: false,
         required: true,
     },
 });

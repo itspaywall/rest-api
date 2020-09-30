@@ -3,7 +3,7 @@
     "version": "0.0.0",
     "private": true,
     "scripts": {
-        "start": "nodemon --exec \"yarn lint && node ./app/start.js\"",
+        "start": "nodemon --exec \"eslint && node ./app/start.js\"",
         "run": "node ./app/index.js",
         "pretty": "pretty-quick",
         "lint": "eslint app/**/*.js",
