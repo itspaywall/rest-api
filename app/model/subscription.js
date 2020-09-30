@@ -22,11 +22,6 @@ const subscriptionSchema = new Schema({
         type: Schema.Types.ObjectId,
         required: true,
     },
-    quantity: {
-        type: Number,
-        validate: validateInteger,
-        required: true,
-    },
     status: {
         type: String,
         required: true,
@@ -42,16 +37,8 @@ const subscriptionSchema = new Schema({
             "paused",
         ],
     },
-    billingPeriod: {
+    pricePerBillingPeriod: {
         type: Number,
-        validate: validateInteger,
-        default: 0,
-        required: true,
-    },
-    billingPeriodUnit: {
-        type: String,
-        enum: ["days", "months"],
-        default: "days",
         required: true,
     },
     setupFee: {
@@ -59,28 +46,19 @@ const subscriptionSchema = new Schema({
         default: 0,
         required: true,
     },
-    trialPeriod: {
+    quantity: {
         type: Number,
         validate: validateInteger,
-        default: 0,
         required: true,
     },
-    trialPeriodUnit: {
-        type: String,
-        enum: ["days", "months"],
-        default: "days",
+    startsAt: {
+        type: Date,
+        default: null,
         required: true,
     },
-    term: {
+    totalBillingCycles: {
         type: Number,
         validate: validateInteger,
-        default: 0,
-        required: true,
-    },
-    termUnit: {
-        type: String,
-        enum: ["days", "months"],
-        default: "days",
         required: true,
     },
     renews: {
@@ -88,9 +66,12 @@ const subscriptionSchema = new Schema({
         default: true,
         required: true,
     },
-    startsAt: {
-        type: Date,
-        default: null,
+    notes: {
+        type: String,
+        required: true,
+    },
+    termsAndConditions: {
+        type: String,
         required: true,
     },
     activatedAt: {
