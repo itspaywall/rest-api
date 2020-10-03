@@ -45,6 +45,11 @@ const transactionSchema = new Schema({
         default: Date.now,
         required: true,
     },
+    updatedAt: {
+        type: Date,
+        default: Date.now,
+        required: true,
+    },
 });
 
 transactionSchema.plugin(paginate);

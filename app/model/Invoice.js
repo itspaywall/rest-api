@@ -105,6 +105,11 @@ const invoiceSchema = new Schema({
         type: Date,
         default: Date.now,
     },
+    updatedAt: {
+        required: true,
+        type: Date,
+        default: Date.now,
+    },
     dueAt: {
         required: true,
         type: Date,
@@ -115,6 +120,9 @@ const invoiceSchema = new Schema({
     },
 });
 
+invoiceSchema.index({
+    invoiceNumber: "text",
+});
 invoiceSchema.plugin(paginate);
 const Invoice = mongoose.model("Invoice", invoiceSchema);
 
