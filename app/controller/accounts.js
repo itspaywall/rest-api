@@ -205,20 +205,18 @@ function attachRoutes(router) {
         response.status(httpStatus.OK).json(result);
     });
 
-    const identifierPattern = /^[a-z0-9]{24}$/;
     /* An account created by one user should be hidden from another user. */
-    router.get("/accounts/:identifier", async (request, response) => {
-        if (!identifierPattern.test(request.params.identifier)) {
+    const identifierPattern = /^[a-z0-9]{24}$/;
+    router.get("/accounts/:id", async (request, response) => {
+        if (!identifierPattern.test(request.params.id)) {
             return response.status(httpStatus.BAD_REQUEST).json({
                 message: "The specified account identifier is invalid.",
             });
         }
 
         const ownerId = new Types.ObjectId(request.user.identifier);
-        const id = new Types.ObjectId(request.params.identifier);
-        const account = await Account.findById(id)
-            .and([{ ownerId: ownerId }])
-            .exec();
+        const id = new Types.ObjectId(request.params.id);
+        const account = await Account.findById(id).and([{ ownerId }]).exec();
         if (account) {
             return response.status(httpStatus.OK).json(toExternal(account));
         }
@@ -228,8 +226,8 @@ function attachRoutes(router) {
         });
     });
 
-    router.put("/accounts/:identifier", async (request, response) => {
-        if (!identifierPattern.test(request.params.identifier)) {
+    router.put("/accounts/:id", async (request, response) => {
+        if (!identifierPattern.test(request.params.id)) {
             return response.status(httpStatus.BAD_REQUEST).json({
                 message: "The specified account identifier is invalid.",
             });
@@ -256,7 +254,7 @@ function attachRoutes(router) {
                 message: error.message,
             });
         }
-        const _id = new Types.ObjectId(request.params.identifier);
+        const _id = new Types.ObjectId(request.params.id);
         const ownerId = new Types.ObjectId(request.user.identifier);
 
         const account = await Account.findOneAndUpdate(

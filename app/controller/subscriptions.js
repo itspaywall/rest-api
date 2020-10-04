@@ -129,6 +129,7 @@ const filterSchema = joi.object({
         .string()
         .valid(
             "all",
+            "new",
             "future",
             "in_trial",
             "active",
@@ -209,7 +210,8 @@ function attachRoutes(router) {
         }
 
         value.ownerId = ownerId;
-        value.status = "future";
+        value.status = "new";
+        value.currentBillingCycle = 0;
         const newSubscription = new Subscription(value);
         await newSubscription.save();
 

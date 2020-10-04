@@ -21,7 +21,7 @@ mongoose.connect(databaseUrl, {
     useNewUrlParser: true,
 });
 mongoose.connection.on("error", console.error.bind(console, "[error] "));
-mongoose.connection.once("open", function () {
+mongoose.connection.once("open", () => {
     console.log("Database connection successfully established.");
     createServer(options, app).listen(port, () => {
         console.log("You can access the server at http://localhost:" + port);

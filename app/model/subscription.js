@@ -27,6 +27,7 @@ const subscriptionSchema = new Schema({
         required: true,
         enum: [
             /* The subscription was created and is neither in trial nor active. */
+            "new",
             "future",
             "in_trial",
             "active",
@@ -54,6 +55,12 @@ const subscriptionSchema = new Schema({
     startsAt: {
         type: Date,
         default: null,
+        required: true,
+    },
+    currentBillingCycle: {
+        type: Number,
+        validate: validateInteger,
+        min: 0,
         required: true,
     },
     totalBillingCycles: {
