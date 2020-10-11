@@ -7,68 +7,6 @@ const redisClient = require("./redis");
 
 const { Types } = mongoose;
 
-function pad(number, size) {
-    let result = number.toString(36).toUpperCase();
-    while (result.length < size) {
-        result = "0" + result;
-    }
-    return result;
-}
-
-function getInvoiceNumber(prefix, id) {
-    return new Promise((resolve, reject) => {
-        redisClient.incr(id, (error, count) => {
-            if (error) {
-                reject(error);
-            } else {
-                if (count == 1) {
-                    const now = new Date();
-                    const midnight = new Date(
-                        now.getFullYear(),
-                        now.getMonth(),
-                        now.getDate(),
-                        0,
-                        0,
-                        0
-                    );
-                    const sinceMidnight = parseInt(
-                        Math.round((now.getTime() - midnight.getTime()) / 1000)
-                    );
-                    const ttl = 86400 - sinceMidnight;
-                    redisClient.expire(id, ttl);
-                }
-
-                const today = new Date();
-                const date =
-                    today.getFullYear() +
-                    pad(today.getMonth(), 2) +
-                    pad(today.getDate(), 2);
-                const number = pad(count, 4);
-                resolve(`${prefix}-${date}-${number}`);
-            }
-        });
-    });
-}
-
-// TODO: Move this to `invoices.test.js`.
-// function generate(prefix, id) {
-//     getInvoiceNumber(prefix, id)
-//         .then((value) => {
-//             console.log(`New invoice number: ${value}`);
-//         })
-//         .catch((error) => {
-//             console.log(error);
-//         });
-// }
-
-// generate("HUB", "hubble_abc");
-// generate("DAR", "darwin_123");
-// generate("DAR", "darwin_123");
-// generate("DAR", "darwin_123");
-// generate("DAR", "darwin_123");
-// generate("HUB", "hubble_abc");
-// generate("HUB", "hubble_abc");
-
 function toExternalSubscription(subscription) {
     return {
         subscriptionId: subscription.subscriptionId,
