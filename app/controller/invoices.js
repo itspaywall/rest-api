@@ -2,28 +2,32 @@ const mongoose = require("mongoose");
 const joi = require("joi");
 const constants = require("../util/constants");
 const httpStatus = require("../util/httpStatus");
-const Invoice = require("../model/Invoice");
+const Invoice = require("../model/invoice");
+const Account = require("../model/account");
 const redisClient = require("./redis");
 
 const { Types } = mongoose;
 
-function toExternalSubscription(subscription) {
+function toExternalItem(item) {
     return {
-        subscriptionId: subscription.subscriptionId,
-        description: subscription.description,
-        quantity: subscription.quantity,
-        startedAt: subscription.startedAt,
-        endedAt: subscription.endedAt,
-        subtotal: subscription.subtotal,
-        total: subscription.total,
+        referenceId: item.referenceId,
+        type: item.type,
+        description: item.description,
+        quantity: item.quantity,
+        startedAt: item.startedAt,
+        endedAt: item.endedAt,
+        subtotal: item.subtotal,
+        total: item.total,
     };
 }
 
 function toExternal(invoice) {
-    return {
+    const { account } = invoice;
+    const result = {
         id: invoice.id,
         ownerId: invoice.ownerId,
         accountId: invoice.accountId,
+        subscriptionId: invoice.subscriptionId,
         invoiceNumber: invoice.invoiceNumber,
         status: invoice.status,
         subtotal: invoice.subtotal,
@@ -31,12 +35,43 @@ function toExternal(invoice) {
         origin: invoice.origin,
         notes: invoice.notes,
         termsAndConditions: invoice.termsAndConditions,
-        subscriptions: invoice.subscriptions.map(toExternalSubscription),
+        items: invoice.items.map(toExternalItem),
         createdAt: invoice.createdAt,
         dueAt: invoice.dueAt,
         closedAt: invoice.closedAt,
+        updatedAt: invoice.updatedAt,
     };
+
+    if (account) {
+        result.account = {
+            id: account.id,
+            userName: account.userName,
+            firstName: account.firstName,
+            lastName: account.lastName,
+            emailAddress: account.emailAddress,
+            phoneNumber: account.phoneNumber,
+            addressLine1: account.addressLine1,
+            addressLine2: account.addressLine2,
+            city: account.city,
+            state: account.state,
+            country: account.country,
+            zipCode: account.zipCode,
+            createdAt: account.createdAt,
+        };
+    }
+
+    return result;
 }
+
+const invoiceSchema = joi.object({
+    notes: joi.string().max(200).allow(null).empty("").default(null),
+    termsAndConditions: joi
+        .string()
+        .max(200)
+        .allow(null)
+        .empty("")
+        .default(null),
+});
 
 const filterSchema = joi.object({
     page: joi.number().integer().default(0),
@@ -132,6 +167,19 @@ function attachRoutes(router) {
             pagination: true,
         });
 
+        const accountIds = [];
+        invoices.docs.forEach((invoice) => {
+            accountIds.push(invoice.accountId);
+        });
+        const accounts = await Account.find({
+            _id: { $in: accountIds },
+        }).exec();
+        const accountById = {};
+        accounts.forEach((account) => (accountById[account.id] = account));
+        invoices.docs.forEach((invoice) => {
+            invoice.account = accountById[invoice.accountId];
+        });
+
         const result = {
             totalRecords: invoices.totalDocs,
             page: value.page,
@@ -149,7 +197,7 @@ function attachRoutes(router) {
     /* An invoice owned by one user should be hidden from another user. */
     const identifierPattern = /^[a-z0-9]{24}$/;
     router.get("/invoices/:id", async (request, response) => {
-        if (!identifierPattern.test(request.params.identifier)) {
+        if (!identifierPattern.test(request.params.id)) {
             return response.status(httpStatus.BAD_REQUEST).json({
                 message: "The specified invoice identifier is invalid.",
             });
@@ -166,6 +214,42 @@ function attachRoutes(router) {
                     "Cannot find an invoice with the specified identifier.",
             });
         }
+    });
+
+    router.put("/invoices/:id", async (request, response) => {
+        if (!identifierPattern.test(request.params.id)) {
+            return response.status(httpStatus.BAD_REQUEST).json({
+                message: "The specified invoice identifier is invalid.",
+            });
+        }
+
+        const body = request.body;
+        const parameters = {
+            notes: body.notes,
+            termsAndConditions: body.termsAndConditions,
+        };
+        const { error, value } = invoiceSchema.validate(parameters);
+
+        if (error) {
+            return response.status(httpStatus.BAD_REQUEST).json({
+                message: error.message,
+            });
+        }
+        const _id = new Types.ObjectId(request.params.id);
+        const ownerId = new Types.ObjectId(request.user.identifier);
+
+        const invoice = await Invoice.findOneAndUpdate(
+            { _id, ownerId },
+            value,
+            { new: true }
+        ).exec();
+        if (invoice) {
+            return response.status(httpStatus.OK).json(toExternal(invoice));
+        }
+
+        response.status(httpStatus.NOT_FOUND).json({
+            message: "Cannot find an invoice with the specified identifier.",
+        });
     });
 }
 
