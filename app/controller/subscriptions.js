@@ -14,8 +14,7 @@ const User = require("../model/user");
 const { Types } = mongoose;
 
 function toExternal(subscription) {
-    const account = subscription.account;
-    const plan = subscription.plan;
+    const { account, plan } = subscription;
     const result = {
         id: subscription.id,
         ownerId: subscription.ownerId,
