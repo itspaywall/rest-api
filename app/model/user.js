@@ -16,7 +16,13 @@
 
 const mongoose = require("mongoose");
 
+const { Schema } = mongoose;
+
 const userSchema = new mongoose.Schema({
+    organizationId: {
+        required: true,
+        type: Schema.Types.ObjectId,
+    },
     firstName: {
         minlength: 3,
         maxlength: 40,
@@ -50,6 +56,11 @@ const userSchema = new mongoose.Schema({
         type: String,
     },
     createdAt: {
+        type: Date,
+        default: Date.now,
+        required: true,
+    },
+    updatedAt: {
         type: Date,
         default: Date.now,
         required: true,
