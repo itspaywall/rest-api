@@ -23,7 +23,8 @@
         "jsonwebtoken": "^8.5.1",
         "mongoose": "^5.9.27",
         "morgan": "~1.9.1",
-        "redis": "^3.0.2"
+        "redis": "^3.0.2",
+        "amqplib": "^0.6.0"
     },
     "devDependencies": {
         "eslint": "^7.5.0",
